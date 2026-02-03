@@ -682,7 +682,7 @@
 
             const rng = new SeededRandom(seed);
             const r_target = state.scenario.r_target;
-            
+
             // Generate latent variables (matching R's algorithm)
             const Xz = [];
             const eps = [];
@@ -692,59 +692,59 @@
             for (let i = 0; i < n; i++) {
                 eps.push(rng.normal(0, 1));
             }
-            
+
             const Yz = Xz.map((xz, i) => r_target * xz + Math.sqrt(Math.max(0, 1 - r_target * r_target)) * eps[i]);
-            
+
             // Get unit-based centers and scales (matching R's switch statements)
             function getCenterScale(unit, isX) {
                 if (isX) {
-                    switch(unit) {
-                        case '%': return {center: 50, scale: 20};
-                        case '0–10': return {center: 5, scale: 2.5};
-                        case '1–7': return {center: 4, scale: 1.2};
-                        case 'uren': case 'uren/week': case 'hours': return {center: 20, scale: 8};
-                        case 'per maand': case 'per month': return {center: 15, scale: 6};
-                        case 'z-score': return {center: 0, scale: 1};
-                        default: return {center: 30, scale: 8};
+                    switch (unit) {
+                        case '%': return { center: 50, scale: 20 };
+                        case '0–10': return { center: 5, scale: 2.5 };
+                        case '1–7': return { center: 4, scale: 1.2 };
+                        case 'uren': case 'uren/week': case 'hours': return { center: 20, scale: 8 };
+                        case 'per maand': case 'per month': return { center: 15, scale: 6 };
+                        case 'z-score': return { center: 0, scale: 1 };
+                        default: return { center: 30, scale: 8 };
                     }
                 } else {
-                    switch(unit) {
-                        case 'per 1.000': case 'per 1,000': return {center: 20, scale: 8};
-                        case 'per week': return {center: 60, scale: 14};
-                        case '0–100': return {center: 60, scale: 15};
-                        case '1–7': return {center: 4, scale: 1.2};
-                        case '%': return {center: 30, scale: 12};
-                        case 'aantal': case 'count': case 'schoolmeldingen/trimester': return {center: 6, scale: 3};
-                        default: return {center: 60, scale: 12};
+                    switch (unit) {
+                        case 'per 1.000': case 'per 1,000': return { center: 20, scale: 8 };
+                        case 'per week': return { center: 60, scale: 14 };
+                        case '0–100': return { center: 60, scale: 15 };
+                        case '1–7': return { center: 4, scale: 1.2 };
+                        case '%': return { center: 30, scale: 12 };
+                        case 'aantal': case 'count': case 'schoolmeldingen/trimester': return { center: 6, scale: 3 };
+                        default: return { center: 60, scale: 12 };
                     }
                 }
             }
-            
-            let {center: x_center, scale: x_scale} = getCenterScale(state.scenario.unitX, true);
-            let {center: y_center, scale: y_scale} = getCenterScale(state.scenario.unitY, false);
-            
+
+            let { center: x_center, scale: x_scale } = getCenterScale(state.scenario.unitX, true);
+            let { center: y_center, scale: y_scale } = getCenterScale(state.scenario.unitY, false);
+
             // Add dataset-level variability (matching R's runif calls)
             x_center += rng.next() * 16 - 8; // runif(1, -8, 8)
             x_scale *= 0.8 + rng.next() * 0.6; // runif(1, 0.8, 1.4)
             y_center += rng.next() * 16 - 8;
             y_scale *= 0.8 + rng.next() * 0.6;
-            
+
             // Scale function (matching R's scale())
             function scaleVec(z) {
                 if (z.length < 2) return z;
-                const mean = z.reduce((a,b) => a+b, 0) / z.length;
-                const sd = Math.sqrt(z.reduce((a,b) => a + Math.pow(b - mean, 2), 0) / (z.length - 1));
+                const mean = z.reduce((a, b) => a + b, 0) / z.length;
+                const sd = Math.sqrt(z.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (z.length - 1));
                 if (sd === 0 || isNaN(sd)) return z;
                 return z.map(v => (v - mean) / sd);
             }
-            
+
             const Xz_scaled = scaleVec(Xz);
             const Yz_scaled = scaleVec(Yz);
-            
+
             // Generate variables with rounding to 4 decimals (matching R)
             let Xv = Xz_scaled.map(z => round4dp(x_center + x_scale * z));
             let Yv = Yz_scaled.map(z => round4dp(y_center + y_scale * z));
-            
+
             // Apply clamping based on variable names (matching R's logic)
             function clampVec(vec, varName) {
                 if (/(Percent|Percentage|Score|Risico|Ratio|Cijfer|%)/.test(varName)) {
@@ -754,10 +754,10 @@
                 }
                 return vec.map(v => Math.max(0, v));
             }
-            
+
             Xv = clampVec(Xv, state.scenario.varX);
             Yv = clampVec(Yv, state.scenario.varY);
-            
+
             // Create data array with 2 decimal display
             state.data = [];
             for (let i = 0; i < n; i++) {
