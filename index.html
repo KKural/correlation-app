@@ -496,6 +496,8 @@
                 vignette: 'Een stad heeft een preventieprogramma geïmplementeerd in verschillende buurten. Onderzoek of een hogere blootstelling samenhangt met lagere inbraakcijfers.',
                 varX: 'ProgrammaBlootstelling',
                 varY: 'InbraakCijfer',
+                unitX: '%',
+                unitY: 'per 1.000',
                 r_target: -0.45,
                 entity: 'Buurt'
             },
@@ -505,6 +507,8 @@
                 vignette: 'Straten variëren in aantal voetpatrouille-uren op criminele hotspots. Beoordeel de relatie met het aantal meldingen aan de politie.',
                 varX: 'VoetPatrouilleUren',
                 varY: 'MeldingenAanPolitie',
+                unitX: 'uren/week',
+                unitY: 'per week',
                 r_target: -0.25,
                 entity: 'Straat'
             },
@@ -514,6 +518,8 @@
                 vignette: 'Ondervraagde bewoners beoordelen fysieke/sociale wanorde en angst voor criminaliteit.',
                 varX: 'WanordeIndex',
                 varY: 'AngstScore',
+                unitX: '0–10',
+                unitY: '0–100',
                 r_target: 0.55,
                 entity: 'Buurt'
             },
@@ -523,6 +529,8 @@
                 vignette: 'Percepties van procedurale rechtvaardigheid versus vertrouwen in politie per district.',
                 varX: 'ProcedureleRechtvaardigheid',
                 varY: 'VertrouwenInPolitie',
+                unitX: '1–7',
+                unitY: '1–7',
                 r_target: 0.70,
                 entity: 'District'
             },
@@ -532,6 +540,8 @@
                 vignette: 'Toezichtscores van huishoudens versus slachtofferschapincidenten.',
                 varX: 'Toezicht',
                 varY: 'Slachtofferschap',
+                unitX: '0–10',
+                unitY: 'aantal',
                 r_target: -0.40,
                 entity: 'Huishouden'
             },
@@ -541,6 +551,8 @@
                 vignette: 'Impulsiviteit versus agressieve incidenten onder jongeren.',
                 varX: 'Impulsiviteit',
                 varY: 'AgressieveIncidenten',
+                unitX: 'z-score',
+                unitY: 'schoolrapporten/term',
                 r_target: 0.45,
                 entity: 'Student'
             },
@@ -550,6 +562,8 @@
                 vignette: 'Begeleiding na vrijlating versus gevalideerde recidiverisicoscore.',
                 varX: 'OndersteuningsUren',
                 varY: 'RecidiveRisico',
+                unitX: 'per maand',
+                unitY: '0–100',
                 r_target: -0.35,
                 entity: 'Deelnemer'
             },
@@ -559,6 +573,8 @@
                 vignette: 'Phishing-trainingsuren versus gesimuleerde klikratio.',
                 varX: 'TrainingsUren',
                 varY: 'Klikratio',
+                unitX: 'uren',
+                unitY: '%',
                 r_target: -0.55,
                 entity: 'Medewerker'
             }
@@ -620,6 +636,15 @@
         }
 
         // Utility functions
+        function isPercentOrScore(varName, unit) {
+            const patterns = /\b(Percent|Score|Risk|CTR|Rate|ratio)\b|%/i;
+            return patterns.test(varName) || patterns.test(unit);
+        }
+
+        function isCount(varName) {
+            return /\b(Count|Incidents|Calls|aantal|incidenten)\b/i.test(varName);
+        }
+
         function round4dp(val) {
             return Math.round(val * 10000) / 10000;
         }
@@ -667,18 +692,74 @@
             const rng = new SeededRandom(seed);
             const r_target = state.scenario.r_target;
 
+            // Generate raw correlated data (matching R's algorithm)
+            const Z = [];
+            for (let i = 0; i < n; i++) {
+                Z.push([rng.normal(0, 1), rng.normal(0, 1)]);
+            }
+
+            // Create correlation structure (simplified 2x2 matrix)
+            const M = [
+                [rng.normal(0, 1), rng.normal(0, 1)],
+                [rng.normal(0, 1), rng.normal(0, 1)]
+            ];
+            // Symmetrize
+            M[1][0] = (M[1][0] + M[0][1]) / 2;
+            M[0][1] = M[1][0];
+
+            // Matrix multiplication Z %*% M
+            const XM = [];
+            for (let i = 0; i < n; i++) {
+                XM.push([
+                    Z[i][0] * M[0][0] + Z[i][1] * M[1][0],
+                    Z[i][0] * M[0][1] + Z[i][1] * M[1][1]
+                ]);
+            }
+
+            // Apply scale() if n >= 2 (standardize to mean=0, sd=1)
+            let X = XM.map(row => [...row]);
+            if (n >= 2) {
+                for (let col = 0; col < 2; col++) {
+                    const vals = X.map(row => row[col]);
+                    const mean = vals.reduce((a, b) => a + b, 0) / n;
+                    const sd = Math.sqrt(vals.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (n - 1));
+                    for (let i = 0; i < n; i++) {
+                        X[i][col] = sd > 0 ? (X[i][col] - mean) / sd : 0;
+                    }
+                }
+            }
+
+            // Scale to friendly ranges using runif()
+            const centers = [rng.next() * 80 + 5, rng.next() * 80 + 5]; // runif(2, min=5, max=85)
+            const scales = [rng.next() * 12 + 4, rng.next() * 12 + 4];  // runif(2, min=4, max=16)
+
+            // Apply centering and scaling
+            for (let i = 0; i < n; i++) {
+                X[i][0] = centers[0] + scales[0] * X[i][0];
+                X[i][1] = centers[1] + scales[1] * X[i][1];
+            }
+
+            // Apply clamping based on variable name patterns
+            const clampX = isPercentOrScore(state.scenario.varX, state.scenario.unitX);
+            const clampY = isPercentOrScore(state.scenario.varY, state.scenario.unitY);
+            const countY = isCount(state.scenario.varY);
+
             state.data = [];
             for (let i = 0; i < n; i++) {
-                const z1 = rng.normal(0, 1);
-                const z2 = rng.normal(0, 1);
+                let x = X[i][0];
+                let y = X[i][1];
 
-                const x = 50 + 15 * z1;
-                const y = 40 + 10 * (r_target * z1 + Math.sqrt(1 - r_target * r_target) * z2);
+                if (clampX) x = Math.max(0, Math.min(100, x));
+                else x = Math.max(0, x);
+
+                if (clampY) y = Math.max(0, Math.min(100, y));
+                else if (countY) y = Math.max(0, Math.round(y));
+                else y = Math.max(0, y);
 
                 state.data.push({
                     id: i + 1,
-                    x: round2dp(Math.max(0, x)),
-                    y: round2dp(Math.max(0, y))
+                    x: round2dp(x),
+                    y: round2dp(y)
                 });
             }
 
