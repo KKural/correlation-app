@@ -767,6 +767,8 @@
                     y: round2dp(Yv[i])
                 });
             }
+            
+            console.log('Generated data:', state.data);
 
             // Calculate truth values using the 2-decimal rounded data
             calculateTruthValues();
@@ -865,11 +867,23 @@
 
         // Display data table
         function displayData() {
+            if (!state.data || state.data.length === 0) {
+                console.log('No data to display');
+                return;
+            }
+            
             const container = document.getElementById('dataTableContainer');
+            if (!container) {
+                console.error('dataTableContainer not found');
+                return;
+            }
 
-            document.getElementById('varsLabel').innerHTML = `
-                <strong>Generieke mapping:</strong> X = ${state.scenario.varX} &nbsp;&nbsp; Y = ${state.scenario.varY}
-            `;
+            const varsLabel = document.getElementById('varsLabel');
+            if (varsLabel) {
+                varsLabel.innerHTML = `
+                    <strong>Generieke mapping:</strong> X = ${state.scenario.varX} &nbsp;&nbsp; Y = ${state.scenario.varY}
+                `;
+            }
 
             let html = `<table><thead><tr>
                 <th>${state.scenario.entity}</th>
