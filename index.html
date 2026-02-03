@@ -690,95 +690,92 @@
             state.n = n;
 
             const rng = new SeededRandom(seed);
-            const r_target = state.scenario.r_target;
-            const k = 2; // number of variables
+            const r = state.scenario.r_target;
 
-            // Step 1: Generate Z matrix (n x k) - R fills COLUMN-WISE
-            // rnorm(n * k) generates all values, then matrix() fills columns
-            const Z = Array(n).fill(0).map(() => [0, 0]);
-            for (let col = 0; col < k; col++) {
-                for (let row = 0; row < n; row++) {
-                    Z[row][col] = rng.normal(0, 1);
-                }
-            }
-
-            // Step 2: Generate M matrix (k x k) - M1 matrix, column-wise
-            const M1 = Array(k).fill(0).map(() => Array(k).fill(0));
-            for (let col = 0; col < k; col++) {
-                for (let row = 0; row < k; row++) {
-                    M1[row][col] = rng.normal(0, 1);
-                }
-            }
-
-            // Step 3: Generate second matrix for transpose, column-wise
-            const M2 = Array(k).fill(0).map(() => Array(k).fill(0));
-            for (let col = 0; col < k; col++) {
-                for (let row = 0; row < k; row++) {
-                    M2[row][col] = rng.normal(0, 1);
-                }
-            }
-
-            // Step 4: M = (M1 + t(M2)) / 2 (symmetrize)
-            const M = Array(k).fill(0).map(() => Array(k).fill(0));
-            for (let i = 0; i < k; i++) {
-                for (let j = 0; j < k; j++) {
-                    M[i][j] = (M1[i][j] + M2[j][i]) / 2;
-                }
-            }
-
-            // Step 5: XM = Z %*% M (matrix multiplication)
-            const XM = Array(n).fill(0).map(() => Array(k).fill(0));
+            // Step 1: Generate latent standardized variables (matching R exactly)
+            // Xz <- rnorm(n)
+            const Xz = [];
             for (let i = 0; i < n; i++) {
-                for (let j = 0; j < k; j++) {
-                    XM[i][j] = 0;
-                    for (let m = 0; m < k; m++) {
-                        XM[i][j] += Z[i][m] * M[m][j];
-                    }
+                Xz.push(rng.normal(0, 1));
+            }
+
+            // eps <- rnorm(n)
+            const eps = [];
+            for (let i = 0; i < n; i++) {
+                eps.push(rng.normal(0, 1));
+            }
+
+            // Yz <- r*Xz + sqrt(1 - r^2)*eps
+            const Yz = [];
+            for (let i = 0; i < n; i++) {
+                Yz.push(r * Xz[i] + Math.sqrt(Math.max(0, 1 - r * r)) * eps[i]);
+            }
+
+            // Step 2: Define base centers/scales by unit type (matching R's switch statement)
+            let x_center, x_scale, y_center, y_scale;
+
+            switch (state.scenario.unitX) {
+                case '%': x_center = 50; x_scale = 20; break;
+                case '0–10': x_center = 5; x_scale = 2.5; break;
+                case '1–7': x_center = 4; x_scale = 1.2; break;
+                case 'uren': case 'hours': x_center = 20; x_scale = 8; break;
+                case 'uren/week': x_center = 20; x_scale = 8; break;
+                case 'per maand': x_center = 15; x_scale = 6; break;
+                case 'z-score': x_center = 0; x_scale = 1; break;
+                default: x_center = 30; x_scale = 8;
+            }
+
+            switch (state.scenario.unitY) {
+                case 'per 1.000': y_center = 20; y_scale = 8; break;
+                case 'per week': y_center = 60; y_scale = 14; break;
+                case '0–100': y_center = 60; y_scale = 15; break;
+                case '1–7': y_center = 4; y_scale = 1.2; break;
+                case '%': y_center = 30; y_scale = 12; break;
+                case 'aantal': case 'count': y_center = 6; y_scale = 3; break;
+                case 'schoolrapporten/term': y_center = 6; y_scale = 3; break;
+                default: y_center = 60; y_scale = 12;
+            }
+
+            // Step 3: Add dataset-level variability (4 runif calls)
+            x_center = x_center + (rng.next() * 16 - 8); // runif(1, -8, 8)
+            x_scale = x_scale * (rng.next() * 0.6 + 0.8);  // runif(1, 0.8, 1.4)
+            y_center = y_center + (rng.next() * 16 - 8);   // runif(1, -8, 8)
+            y_scale = y_scale * (rng.next() * 0.6 + 0.8);  // runif(1, 0.8, 1.4)
+
+            // Step 4: Apply scale() then transform (matching R's scale_by_unit)
+            function scaleByUnit(z, center, scale) {
+                if (n < 2) {
+                    // No standardization if n < 2
+                    return z.map(v => round4dp(center + scale * v));
                 }
-            }
-
-            // Step 6: scale() - standardize to mean=0, sd=1 if n >= 2
-            let X = XM.map(row => [...row]);
-            if (n >= 2) {
-                for (let col = 0; col < k; col++) {
-                    const vals = X.map(row => row[col]);
-                    const mean = vals.reduce((a, b) => a + b, 0) / n;
-                    const variance = vals.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (n - 1);
-                    const sd = Math.sqrt(variance);
-                    for (let i = 0; i < n; i++) {
-                        X[i][col] = sd > 0 ? (X[i][col] - mean) / sd : 0;
-                    }
+                
+                // Standardize: z = (z - mean) / sd
+                const mean = z.reduce((a, b) => a + b, 0) / n;
+                const variance = z.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (n - 1);
+                const sd = Math.sqrt(variance);
+                
+                if (sd === 0 || isNaN(sd)) {
+                    return z.map(v => round4dp(center + scale * v));
                 }
+                
+                const zStd = z.map(v => (v - mean) / sd);
+                return zStd.map(v => round4dp(center + scale * v));
             }
 
-            // Step 7: Generate centers and scales using runif()
-            const centers = [];
-            const scales = [];
-            for (let j = 0; j < k; j++) {
-                centers.push(rng.next() * 80 + 5); // runif(1, min=5, max=85)
-            }
-            for (let j = 0; j < k; j++) {
-                scales.push(rng.next() * 12 + 4); // runif(1, min=4, max=16)
-            }
+            const Xv = scaleByUnit(Xz, x_center, x_scale);
+            const Yv = scaleByUnit(Yz, y_center, y_scale);
 
-            // Step 8: Apply centering and scaling, round to 4 decimals (matching R)
-            for (let j = 0; j < k; j++) {
-                for (let i = 0; i < n; i++) {
-                    X[i][j] = round4dp(centers[j] + scales[j] * X[i][j]);
-                }
-            }
-
-            // Step 9: Apply clamping based on variable name patterns
-            const clampX = isPercentOrScore(state.scenario.varX, state.scenario.unitX);
-            const clampY = isPercentOrScore(state.scenario.varY, state.scenario.unitY);
-            const countY = isCount(state.scenario.varY);
+            // Step 5: Apply clamping
+            const clampX = /(%|Score|Risk|CTR)/i.test(state.scenario.varX + state.scenario.unitX);
+            const clampY = /(%|Score|Risk|CTR)/i.test(state.scenario.varY + state.scenario.unitY);
+            const countY = /(Count|Incidents|Calls|aantal|incidenten)/i.test(state.scenario.varY);
 
             state.data = [];
             for (let i = 0; i < n; i++) {
-                let x = X[i][0];
-                let y = X[i][1];
+                let x = Xv[i];
+                let y = Yv[i];
 
-                // Apply clamping (R does this AFTER the round(4) step)
+                // Apply clamping
                 if (clampX) {
                     x = Math.max(0, Math.min(100, x));
                 } else {
