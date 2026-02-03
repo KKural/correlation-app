@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Correlatie Oefening - Prototype</title>
+    <title>Correlatie & Regressie - Oefeningen</title>
     <style>
         * {
             margin: 0;
@@ -20,39 +20,53 @@
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }
 
-        h1 {
-            color: #3F51B5;
+        .title {
             font-weight: 800;
-            margin-bottom: 30px;
+            color: #3F51B5;
             text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         .card {
             background: #fff;
             border-radius: 16px;
-            padding: 24px;
+            padding: 20px;
             margin-bottom: 20px;
             box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
-            transition: box-shadow 0.2s ease-in-out;
+            transition: box-shadow 0.2s;
         }
 
         .card:hover {
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
         }
 
-        .card h2 {
+        .card h2,
+        .card h3,
+        .card h4 {
             color: #333;
             margin-bottom: 15px;
-            font-size: 1.3rem;
         }
 
         .muted {
             color: #666;
             margin-bottom: 15px;
+            font-size: 14px;
         }
 
         .accent {
@@ -63,31 +77,30 @@
             margin: 15px 0;
         }
 
-        .controls {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
+        .accent ol {
+            margin: 6px 0 0 18px;
         }
 
         label {
             display: block;
-            margin-bottom: 5px;
+            margin: 10px 0 5px 0;
             font-weight: 600;
             color: #333;
+            font-size: 14px;
         }
 
         input[type="number"],
+        input[type="text"],
         select {
             width: 100%;
             padding: 10px;
             border: 2px solid #e0e0e0;
             border-radius: 8px;
             font-size: 14px;
-            transition: border-color 0.2s;
+            transition: all 0.2s;
         }
 
-        input[type="number"]:focus,
+        input:focus,
         select:focus {
             outline: none;
             border-color: #42A5F5;
@@ -95,12 +108,12 @@
 
         input.valid {
             border: 2px solid #00C853 !important;
-            background: #e8f5e9;
+            background: #e8f5e9 !important;
         }
 
         input.invalid {
             border: 2px solid #D50000 !important;
-            background: #ffebee;
+            background: #ffebee !important;
         }
 
         button {
@@ -111,37 +124,39 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
+            width: 100%;
+            margin: 5px 0;
         }
 
-        .btn-primary {
+        .btn-success {
             background: #4CAF50;
             color: white;
         }
 
-        .btn-primary:hover {
+        .btn-success:hover {
             background: #45a049;
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
         }
 
-        .btn-secondary {
-            background: #2196F3;
+        .btn-default {
+            background: #9E9E9E;
             color: white;
         }
 
-        .btn-secondary:hover {
-            background: #1976D2;
+        .btn-default:hover {
+            background: #757575;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
             margin: 15px 0;
+            font-size: 13px;
         }
 
         th,
         td {
-            padding: 12px;
+            padding: 10px;
             text-align: center;
             border: 1px solid #e0e0e0;
         }
@@ -150,6 +165,14 @@
             background: #f5f5f5;
             font-weight: 700;
             color: #333;
+            font-size: 12px;
+        }
+
+        td input {
+            width: 90px;
+            padding: 6px;
+            text-align: center;
+            font-size: 12px;
         }
 
         .feedback {
@@ -157,15 +180,16 @@
             border-radius: 8px;
             margin: 10px 0;
             font-weight: 600;
+            font-size: 14px;
         }
 
-        .feedback.ok {
+        .ok {
             background: #e8f5e9;
             color: #0E7C7B;
             border-left: 4px solid #00C853;
         }
 
-        .feedback.err {
+        .err {
             background: #ffebee;
             color: #B00020;
             border-left: 4px solid #D50000;
@@ -175,6 +199,7 @@
             display: flex;
             gap: 8px;
             margin-top: 10px;
+            flex-wrap: wrap;
         }
 
         .light {
@@ -195,181 +220,354 @@
             gap: 15px;
         }
 
-        code {
-            background: #f5f5f5;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: 'Courier New', monospace;
+        .helptext {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .success-box {
+            background: #E8F5E9;
+            border: 2px solid #4CAF50;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+
+        .success-box h3 {
+            color: #2E7D32;
+            margin-top: 0;
+        }
+
+        .disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 20px;
+            margin: 10px 0;
+        }
+
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: normal;
         }
     </style>
 </head>
 
 <body>
     <div class="container">
-        <h1>Correlatie Oefening - Prototype</h1>
+        <h1 class="title">Oefeningen voor Correlatie & Regressie</h1>
 
-        <!-- Scenario Card -->
-        <div class="card">
-            <h2>Scenario & Dataset</h2>
-            <p class="muted">Kies een scenario en genereer een dataset om te oefenen met correlatie berekeningen.</p>
+        <div class="main-grid">
+            <!-- SIDEBAR -->
+            <div class="sidebar">
+                <!-- How it works -->
+                <div class="card">
+                    <h4>Hoe deze webpagina werkt</h4>
+                    <div id="howItWorks"></div>
+                </div>
 
-            <div class="controls">
-                <div>
+                <!-- Scenario & dataset -->
+                <div class="card">
+                    <h4>Scenario & dataset</h4>
+                    <p class="muted"><b>Twee manieren om data te verkrijgen:</b><br>
+                        <b>1. Selecteer een specifiek scenario</b> uit de dropdown en klik 'Genereer dataset'<br>
+                        <b>2. Verkrijg een willekeurig scenario</b> door te klikken op 'Genereer willekeurig dataset'
+                    </p>
+
+                    <label>Analysetype</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="mode" value="Correlation" checked> Correlatie</label>
+                        <label><input type="radio" name="mode" value="Bivariate"> Bivariate Regressie</label>
+                    </div>
+
                     <label for="scenario">Scenario</label>
                     <select id="scenario">
-                        <option value="crime_program">Criminaliteitspreventie</option>
-                        <option value="hotspots">Hot-spot Politiestrategie</option>
-                        <option value="fear_disorder">Angst & Wanorde</option>
+                        <option value="crime_program">Implementatie criminaliteitspreventieprogramma</option>
+                        <option value="hotspots_policing">Hot-spot politiestrategie</option>
+                        <option value="fear_disorder">Angst voor criminaliteit & buurtwanorde</option>
+                        <option value="police_public_relations">Politie–publiek relaties</option>
+                        <option value="guardianship_victimization">Toezicht & slachtofferschap</option>
+                        <option value="biosocial">Biosociaal risico</option>
+                        <option value="reentry_recidivism">Re-integratiebegeleiding & recidiverisico</option>
+                        <option value="cyber_training">Cybercrime-bewustmakingstraining</option>
                     </select>
+                    <p class="helptext">Kies een criminologische context. Elk scenario heeft realistische variabele
+                        relaties.</p>
+
+                    <label for="n">Steekproefgrootte N (5–50)</label>
+                    <input type="number" id="n" min="5" max="50" value="10">
+                    <p class="helptext">Aantal waarnemingen in uw dataset. Grotere steekproeven = meer berekeningen.</p>
+
+                    <label for="seed">Datasetcode (seed, optioneel)</label>
+                    <input type="text" id="seed" placeholder="">
+                    <p class="helptext"><b>Optioneel nummer voor reproduceerbaarheid.</b> Zelfde code = elke keer
+                        dezelfde dataset.</p>
+
+                    <button class="btn-success" onclick="generateData(false)">Genereer dataset</button>
+                    <button class="btn-default" onclick="generateData(true)">Genereer willekeurig dataset</button>
+
+                    <div id="seedEcho" class="muted hidden"></div>
                 </div>
 
-                <div>
-                    <label for="n">Steekproefgrootte (N)</label>
-                    <input type="number" id="n" min="5" max="20" value="10">
-                </div>
-
-                <div>
-                    <label for="seed">Dataset Code (optioneel)</label>
-                    <input type="number" id="seed" placeholder="bijv. 12345">
-                </div>
-            </div>
-
-            <button class="btn-primary" onclick="generateData()">Genereer Dataset</button>
-
-            <div id="seedEcho" class="accent hidden" style="margin-top: 15px;">
-                <strong>Dataset code:</strong> <span id="seedValue"></span>
-            </div>
-        </div>
-
-        <!-- Vignette Card -->
-        <div id="vignetteCard" class="card hidden">
-            <h2>Taak & Context</h2>
-            <div id="vignetteText"></div>
-        </div>
-
-        <!-- Data Display Card -->
-        <div id="dataCard" class="card hidden">
-            <h2>Deel I — Dataset</h2>
-            <p class="muted">Bekijk uw data voordat u begint met berekeningen.</p>
-            <table id="dataTable"></table>
-        </div>
-
-        <!-- Step 1: Means Card -->
-        <div id="step1Card" class="card hidden">
-            <h2>Deel II — Stap 1: Rekenkundige Gemiddelden</h2>
-            <p class="muted">Bereken het gemiddelde van X en Y. Rond af op 4 decimalen.</p>
-
-            <div class="accent">
-                <strong>Variabelen:</strong><br>
-                <strong>X:</strong> <span id="varXLabel"></span><br>
-                <strong>Y:</strong> <span id="varYLabel"></span>
-            </div>
-
-            <div class="grid-2" style="margin: 20px 0;">
-                <div>
-                    <label for="meanX">X̄ (Gemiddelde van X)</label>
-                    <input type="number" id="meanX" step="0.0001" placeholder="0.0000" oninput="checkMeans()">
-                </div>
-                <div>
-                    <label for="meanY">Ȳ (Gemiddelde van Y)</label>
-                    <input type="number" id="meanY" step="0.0001" placeholder="0.0000" oninput="checkMeans()">
+                <!-- Steps -->
+                <div class="card">
+                    <h4>Stappen (NL)</h4>
+                    <div id="stepsDisplay"></div>
                 </div>
             </div>
 
-            <div class="traffic">
-                <div class="light" id="lightMeanX"></div>
-                <div class="light" id="lightMeanY"></div>
+            <!-- MAIN CONTENT -->
+            <div class="main-content">
+                <!-- Dataset display -->
+                <div class="card">
+                    <h4>Deel I — Dataset</h4>
+                    <p class="muted">Bekijk uw dataset voordat u de analyse begint.</p>
+                    <div id="dataTableContainer"></div>
+                </div>
+
+                <!-- Vignette -->
+                <div id="vignetteCard" class="card hidden">
+                    <h4>Taak & vignette</h4>
+                    <div id="vignetteText"></div>
+                </div>
+
+                <!-- Step 1: Means -->
+                <div id="step1Card" class="card hidden">
+                    <h4>Deel II — Stap 1: Rekenkundige Gemiddelden (4 decimalen)</h4>
+                    <p class="muted">Bereken het rekenkundig gemiddelde van X en Y.</p>
+                    <div id="varsLabel" class="accent"></div>
+                    <div class="grid-2">
+                        <div>
+                            <label for="meanX"><strong>Stap 1:</strong> Gemiddelde van <b>X</b> = ΣX/n</label>
+                            <input type="number" id="meanX" step="0.0001" placeholder="0.0000"
+                                oninput="validateStep1()">
+                        </div>
+                        <div>
+                            <label for="meanY"><strong>Stap 1:</strong> Gemiddelde van <b>Y</b> = ΣY/n</label>
+                            <input type="number" id="meanY" step="0.0001" placeholder="0.0000"
+                                oninput="validateStep1()">
+                        </div>
+                    </div>
+                    <div class="traffic">
+                        <div class="light" id="lightMeanX"></div>
+                        <div class="light" id="lightMeanY"></div>
+                    </div>
+                    <div id="step1Feedback"></div>
+                </div>
+
+                <!-- Steps 2-4: Deviations table -->
+                <div id="step234Card" class="card hidden">
+                    <h4>Deel III — Stappen 2-4: Afwijkingen, Kwadraten & Sommen (4 decimalen)</h4>
+                    <p class="muted">Bereken afwijkingen van gemiddelden, kwadrateer deze, en bereken kruisproducten.
+                    </p>
+                    <div id="deviationsTableContainer"></div>
+                    <div class="traffic" id="deviationsLights"></div>
+                    <div id="step234Feedback"></div>
+
+                    <div class="grid-2" style="margin-top: 20px;">
+                        <div>
+                            <label for="totX2"><strong>Stap 4:</strong> Σ(x − x̄)²</label>
+                            <input type="number" id="totX2" step="0.0001" placeholder="0.0000"
+                                oninput="validateStep4()">
+                        </div>
+                        <div>
+                            <label for="totY2"><strong>Stap 4:</strong> Σ(y − ȳ)²</label>
+                            <input type="number" id="totY2" step="0.0001" placeholder="0.0000"
+                                oninput="validateStep4()">
+                        </div>
+                    </div>
+                    <div id="step4Feedback"></div>
+                </div>
+
+                <!-- Steps 5-6: Variances -->
+                <div id="step56Card" class="card hidden">
+                    <h4>Deel IV — Stappen 5-6: Varianties & Standaarddeviaties (4 decimalen)</h4>
+                    <p class="muted">Bereken Var(X) en Var(Y), neem vervolgens vierkantswortels voor SD(X) en SD(Y).</p>
+                    <div class="grid-2">
+                        <div>
+                            <label for="varX"><strong>Stap 5:</strong> Var(X) = Σ(X-X̄)² / (n-1)</label>
+                            <input type="number" id="varX" step="0.0001" placeholder="0.0000"
+                                oninput="validateStep56()">
+                        </div>
+                        <div>
+                            <label for="varY"><strong>Stap 5:</strong> Var(Y) = Σ(Y-Ȳ)² / (n-1)</label>
+                            <input type="number" id="varY" step="0.0001" placeholder="0.0000"
+                                oninput="validateStep56()">
+                        </div>
+                        <div>
+                            <label for="sdX"><strong>Stap 6:</strong> SD(X) = √Var(X)</label>
+                            <input type="number" id="sdX" step="0.0001" placeholder="0.0000" oninput="validateStep56()">
+                        </div>
+                        <div>
+                            <label for="sdY"><strong>Stap 6:</strong> SD(Y) = √Var(Y)</label>
+                            <input type="number" id="sdY" step="0.0001" placeholder="0.0000" oninput="validateStep56()">
+                        </div>
+                    </div>
+                    <div id="step56Feedback"></div>
+                </div>
+
+                <!-- Steps 7-9: Covariance -->
+                <div id="step79Card" class="card hidden">
+                    <h4>Deel V — Stappen 7-9: Covariatie & Voorbereiding (4 decimalen)</h4>
+                    <p class="muted">Bereken covariantie en SD-product voor correlatie.</p>
+                    <div>
+                        <label for="crossProduct"><strong>Stap 7:</strong> Kruisproductsom Σ(X−X̄)(Y−Ȳ)</label>
+                        <input type="number" id="crossProduct" step="0.0001" placeholder="0.0000"
+                            oninput="validateStep79()">
+
+                        <label for="covariance"><strong>Stap 8:</strong> Cov(X,Y) = Σ(X−X̄)(Y−Ȳ) / (n-1)</label>
+                        <input type="number" id="covariance" step="0.0001" placeholder="0.0000"
+                            oninput="validateStep79()">
+
+                        <label for="sdProduct"><strong>Stap 9:</strong> SD(X) × SD(Y)</label>
+                        <input type="number" id="sdProduct" step="0.0001" placeholder="0.0000"
+                            oninput="validateStep79()">
+                    </div>
+                    <div id="step79Feedback"></div>
+                </div>
+
+                <!-- Steps 10-12: Regression (only for Bivariate mode) -->
+                <div id="step1012Card" class="card hidden">
+                    <h4>Deel VI — Stappen 10-12: Regressiecoëfficiënten (4 decimalen)</h4>
+                    <p class="muted">Voltooi de regressieanalyse.</p>
+                    <div>
+                        <label for="correlation"><strong>Stap 10:</strong> Correlatie r = Cov(X,Y) /
+                            (SD(X)×SD(Y))</label>
+                        <input type="number" id="correlation" step="0.0001" placeholder="0.0000"
+                            oninput="validateStep1012()">
+
+                        <label for="slope"><strong>Stap 11:</strong> Helling b = Cov(X,Y) / Var(X)</label>
+                        <input type="number" id="slope" step="0.0001" placeholder="0.0000" oninput="validateStep1012()">
+
+                        <label for="intercept"><strong>Stap 12:</strong> Intercept a = Ȳ − b·X̄</label>
+                        <input type="number" id="intercept" step="0.0001" placeholder="0.0000"
+                            oninput="validateStep1012()">
+                    </div>
+                    <div id="step1012Feedback"></div>
+                </div>
+
+                <!-- Steps 14-15: R² (only for Bivariate mode) -->
+                <div id="step1415Card" class="card hidden">
+                    <h4>Deel VIII — Stappen 14-15: Determinatiecoëfficiënt (4 decimalen)</h4>
+                    <p class="muted">Bereken R² en vervreemdingscoëfficiënt.</p>
+                    <div class="grid-2">
+                        <div>
+                            <label for="rSquared"><strong>Stap 14:</strong> R² = r²</label>
+                            <input type="number" id="rSquared" step="0.0001" placeholder="0.0000"
+                                oninput="validateStep1415()">
+                        </div>
+                        <div>
+                            <label for="alienation"><strong>Stap 15:</strong> Vervreemding = 1 − R²</label>
+                            <input type="number" id="alienation" step="0.0001" placeholder="0.0000"
+                                oninput="validateStep1415()">
+                        </div>
+                    </div>
+                    <div id="step1415Feedback"></div>
+                </div>
+
+                <!-- Success message -->
+                <div id="successMessage" class="hidden"></div>
             </div>
-
-            <div id="meansFeedback"></div>
-
-            <button class="btn-secondary" onclick="proceedToStep2()" style="margin-top: 15px;">
-                Ga verder naar Stap 2 →
-            </button>
-        </div>
-
-        <!-- Step 2: Deviations Card -->
-        <div id="step2Card" class="card hidden">
-            <h2>Deel III — Stap 2: Afwijkingen & Kwadraten</h2>
-            <p class="muted">Bereken voor elk datapunt de afwijking van het gemiddelde en het kwadraat daarvan.</p>
-
-            <table id="deviationsTable"></table>
-
-            <div class="traffic" id="deviationsLights"></div>
-
-            <div id="deviationsFeedback"></div>
         </div>
     </div>
 
     <script>
-        // ============================================================
-        // DATA & STATE MANAGEMENT
-        // ============================================================
-
-        let state = {
+        // State
+        const state = {
+            mode: 'Correlation',
             scenario: null,
+            data: [],
             n: 10,
             seed: null,
-            data: [],
-            varX: '',
-            varY: '',
-            trueValues: {
-                meanX: 0,
-                meanY: 0,
-                deviations: []
-            }
+            truth: {}
         };
 
-        // Scenario definitions (simplified)
+        // Scenarios (matching R version)
         const scenarios = {
             crime_program: {
-                name: "Criminaliteitspreventie Programma",
-                varX: "ProgrammaBlootstelling",
-                varY: "InbraakCijfer",
-                varXLabel: "Programmablootstelling (%)",
-                varYLabel: "Inbraakcijfer (per 1000)",
-                vignette: "Een gemeente voert een criminaliteitspreventie programma uit. U analyseert of huishoudens die bereikt werden door het programma (X) lagere inbraakcijfers vertonen (Y).",
-                concepts: [
-                    "<b>Inbraakcijfer:</b> aantal inbraken per 1.000 inwoners.",
-                    "<b>Programmablootstelling:</b> percentage huishoudens bereikt door preventie."
-                ],
-                correlation: -0.7  // Expected correlation
+                id: 'crime_program',
+                title: 'Implementatie criminaliteitspreventieprogramma',
+                vignette: 'Een stad heeft een preventieprogramma geïmplementeerd in verschillende buurten. Onderzoek of een hogere blootstelling samenhangt met lagere inbraakcijfers.',
+                varX: 'ProgrammaBlootstelling',
+                varY: 'InbraakCijfer',
+                r_target: -0.45,
+                entity: 'Buurt'
             },
-            hotspots: {
-                name: "Hot-spot Politiestrategie",
-                varX: "VoetPatrouilleUren",
-                varY: "MeldingenAanPolitie",
-                varXLabel: "Voetpatrouille Uren",
-                varYLabel: "Meldingen aan Politie",
-                vignette: "Politie voert gerichte patrouilles uit in hot-spots. U onderzoekt of meer patrouille-uren (X) leiden tot meer meldingen (Y).",
-                concepts: [
-                    "<b>Hot-spot politiestrategie:</b> gerichte patrouille in gebieden met verhoogde criminaliteit.",
-                    "<b>Meldingen aan politie:</b> aantal verzoeken om politie-interventie."
-                ],
-                correlation: 0.6
+            hotspots_policing: {
+                id: 'hotspots_policing',
+                title: 'Hot-spot politiestrategie',
+                vignette: 'Straten variëren in aantal voetpatrouille-uren op criminele hotspots. Beoordeel de relatie met het aantal meldingen aan de politie.',
+                varX: 'VoetPatrouilleUren',
+                varY: 'MeldingenAanPolitie',
+                r_target: -0.25,
+                entity: 'Straat'
             },
             fear_disorder: {
-                name: "Angst & Wanorde",
-                varX: "WanordeIndex",
-                varY: "AngstScore",
-                varXLabel: "Wanorde Index",
-                varYLabel: "Angst Score",
-                vignette: "U onderzoekt of wijken met meer wanorde (graffiti, zwerfvuil) hogere angst voor criminaliteit vertonen.",
-                concepts: [
-                    "<b>Angst voor criminaliteit:</b> bezorgdheid om slachtoffer te worden.",
-                    "<b>Wanorde:</b> signalen zoals zwerfvuil, graffiti, overlastgevend gedrag."
-                ],
-                correlation: 0.75
+                id: 'fear_disorder',
+                title: 'Angst voor criminaliteit & buurtwanorde',
+                vignette: 'Ondervraagde bewoners beoordelen fysieke/sociale wanorde en angst voor criminaliteit.',
+                varX: 'WanordeIndex',
+                varY: 'AngstScore',
+                r_target: 0.55,
+                entity: 'Buurt'
+            },
+            police_public_relations: {
+                id: 'police_public_relations',
+                title: 'Politie–publiek relaties',
+                vignette: 'Percepties van procedurale rechtvaardigheid versus vertrouwen in politie per district.',
+                varX: 'ProcedureleRechtvaardigheid',
+                varY: 'VertrouwenInPolitie',
+                r_target: 0.70,
+                entity: 'District'
+            },
+            guardianship_victimization: {
+                id: 'guardianship_victimization',
+                title: 'Toezicht & slachtofferschap',
+                vignette: 'Toezichtscores van huishoudens versus slachtofferschapincidenten.',
+                varX: 'Toezicht',
+                varY: 'Slachtofferschap',
+                r_target: -0.40,
+                entity: 'Huishouden'
+            },
+            biosocial: {
+                id: 'biosocial',
+                title: 'Biosociaal risico',
+                vignette: 'Impulsiviteit versus agressieve incidenten onder jongeren.',
+                varX: 'Impulsiviteit',
+                varY: 'AgressieveIncidenten',
+                r_target: 0.45,
+                entity: 'Student'
+            },
+            reentry_recidivism: {
+                id: 'reentry_recidivism',
+                title: 'Re-integratiebegeleiding & recidiverisico',
+                vignette: 'Begeleiding na vrijlating versus gevalideerde recidiverisicoscore.',
+                varX: 'OndersteuningsUren',
+                varY: 'RecidiveRisico',
+                r_target: -0.35,
+                entity: 'Deelnemer'
+            },
+            cyber_training: {
+                id: 'cyber_training',
+                title: 'Cybercrime-bewustmakingstraining',
+                vignette: 'Phishing-trainingsuren versus gesimuleerde klikratio.',
+                varX: 'TrainingsUren',
+                varY: 'Klikratio',
+                r_target: -0.55,
+                entity: 'Medewerker'
             }
         };
 
-        // ============================================================
-        // SEEDED RANDOM NUMBER GENERATOR
-        // ============================================================
-
+        // RNG (matching R version exactly for same seed = same data)
         class SeededRandom {
             constructor(seed) {
-                this.seed = seed || Math.floor(Math.random() * 999999);
+                this.seed = seed || Math.floor(Math.random() * 999999999);
             }
 
             next() {
@@ -378,7 +576,6 @@
             }
 
             normal(mean = 0, sd = 1) {
-                // Box-Muller transform
                 const u1 = this.next();
                 const u2 = this.next();
                 const z0 = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
@@ -386,272 +583,229 @@
             }
         }
 
-        // ============================================================
-        // DATA GENERATION
-        // ============================================================
+        // Utility functions
+        function round4dp(val) {
+            return Math.round(val * 10000) / 10000;
+        }
 
-        function generateData() {
-            const scenarioId = document.getElementById('scenario').value;
+        function round2dp(val) {
+            return Math.round(val * 100) / 100;
+        }
+
+        function checkValue(userVal, trueVal, decimals = 4) {
+            const user = parseFloat(userVal);
+            if (isNaN(user)) return null;
+            const mult = Math.pow(10, decimals);
+            return Math.round(user * mult) === Math.round(trueVal * mult);
+        }
+
+        // Generate data
+        function generateData(randomScenario = false) {
             const n = parseInt(document.getElementById('n').value);
-            const seedInput = document.getElementById('seed').value;
-
-            if (n < 5 || n > 20) {
-                alert('Kies een steekproefgrootte tussen 5 en 20');
+            if (n < 5 || n > 50) {
+                alert('Kies een steekproefgrootte tussen 5 en 50');
                 return;
             }
 
-            state.scenario = scenarios[scenarioId];
-            state.n = n;
-            state.seed = seedInput ? parseInt(seedInput) : Math.floor(Math.random() * 999999);
+            let seedInput = document.getElementById('seed').value;
+            let seed;
 
-            // Show seed
-            document.getElementById('seedValue').textContent = state.seed;
+            if (randomScenario) {
+                seed = Math.floor(Math.random() * 999999999);
+                const scenarioIds = Object.keys(scenarios);
+                const randomId = scenarioIds[Math.floor(Math.random() * scenarioIds.length)];
+                document.getElementById('scenario').value = randomId;
+            } else {
+                seed = seedInput ? parseInt(seedInput) : Math.floor(Math.random() * 999999999);
+            }
+
+            state.seed = seed;
+            document.getElementById('seed').value = seed;
+            document.getElementById('seedEcho').textContent = `Code: ${seed}`;
             document.getElementById('seedEcho').classList.remove('hidden');
 
-            // Generate data using seed
-            const rng = new SeededRandom(state.seed);
-            const targetCorr = state.scenario.correlation;
+            const scenarioId = document.getElementById('scenario').value;
+            state.scenario = scenarios[scenarioId];
+            state.n = n;
 
-            // Generate correlated data
+            const rng = new SeededRandom(seed);
+            const r_target = state.scenario.r_target;
+
             state.data = [];
-            let sumX = 0, sumY = 0;
-
             for (let i = 0; i < n; i++) {
                 const z1 = rng.normal(0, 1);
                 const z2 = rng.normal(0, 1);
 
                 const x = 50 + 15 * z1;
-                const y = 40 + 10 * (targetCorr * z1 + Math.sqrt(1 - targetCorr * targetCorr) * z2);
+                const y = 40 + 10 * (r_target * z1 + Math.sqrt(1 - r_target * r_target) * z2);
 
                 state.data.push({
                     id: i + 1,
-                    x: Math.max(0, x),
-                    y: Math.max(0, y)
+                    x: round2dp(Math.max(0, x)),
+                    y: round2dp(Math.max(0, y))
                 });
-
-                sumX += state.data[i].x;
-                sumY += state.data[i].y;
             }
 
-            // Calculate true values
-            state.trueValues.meanX = sumX / n;
-            state.trueValues.meanY = sumY / n;
-
-            // Calculate deviations
-            state.trueValues.deviations = state.data.map(d => ({
-                devX: d.x - state.trueValues.meanX,
-                devY: d.y - state.trueValues.meanY,
-                devX2: Math.pow(d.x - state.trueValues.meanX, 2),
-                devY2: Math.pow(d.y - state.trueValues.meanY, 2)
-            }));
-
-            // Display everything
-            displayVignette();
-            displayData();
-            showStep1();
+            // Calculate truth values using the 2-decimal rounded data
+            calculateTruthValues();
+            updateUI();
         }
 
-        // ============================================================
-        // DISPLAY FUNCTIONS
-        // ============================================================
+        // Calculate all truth values
+        function calculateTruthValues() {
+            const xVals = state.data.map(d => d.x);
+            const yVals = state.data.map(d => d.y);
+            const n = state.n;
 
+            // Step 1: Means
+            state.truth.meanX = round4dp(xVals.reduce((a, b) => a + b, 0) / n);
+            state.truth.meanY = round4dp(yVals.reduce((a, b) => a + b, 0) / n);
+
+            // Steps 2-3: Deviations
+            state.truth.deviations = state.data.map(d => ({
+                devX: round4dp(d.x - state.truth.meanX),
+                devY: round4dp(d.y - state.truth.meanY),
+                devX2: round4dp(Math.pow(d.x - state.truth.meanX, 2)),
+                devY2: round4dp(Math.pow(d.y - state.truth.meanY, 2)),
+                devXY: round4dp((d.x - state.truth.meanX) * (d.y - state.truth.meanY))
+            }));
+
+            // Step 4: Sums
+            state.truth.sumDevX2 = round4dp(state.truth.deviations.reduce((a, b) => a + b.devX2, 0));
+            state.truth.sumDevY2 = round4dp(state.truth.deviations.reduce((a, b) => a + b.devY2, 0));
+            state.truth.sumDevXY = round4dp(state.truth.deviations.reduce((a, b) => a + b.devXY, 0));
+
+            // Steps 5-6: Variances and SDs
+            state.truth.varX = round4dp(state.truth.sumDevX2 / (n - 1));
+            state.truth.varY = round4dp(state.truth.sumDevY2 / (n - 1));
+            state.truth.sdX = round4dp(Math.sqrt(state.truth.varX));
+            state.truth.sdY = round4dp(Math.sqrt(state.truth.varY));
+
+            // Steps 7-9: Covariance and correlation prep
+            state.truth.covariance = round4dp(state.truth.sumDevXY / (n - 1));
+            state.truth.sdProduct = round4dp(state.truth.sdX * state.truth.sdY);
+
+            // Step 10: Correlation
+            state.truth.correlation = round4dp(state.truth.covariance / state.truth.sdProduct);
+
+            // Steps 11-12: Regression
+            state.truth.slope = round4dp(state.truth.covariance / state.truth.varX);
+            state.truth.intercept = round4dp(state.truth.meanY - state.truth.slope * state.truth.meanX);
+
+            // Steps 14-15: R² and alienation
+            state.truth.rSquared = round4dp(state.truth.correlation * state.truth.correlation);
+            state.truth.alienation = round4dp(1 - state.truth.rSquared);
+
+            console.log('Truth values calculated:', state.truth);
+        }
+
+        // Update all UI elements
+        function updateUI() {
+            updateMode();
+            displayVignette();
+            displayData();
+            displaySteps();
+            resetAllInputs();
+        }
+
+        // Update mode-specific UI
+        function updateMode() {
+            const mode = document.querySelector('input[name="mode"]:checked').value;
+            state.mode = mode;
+
+            // Show/hide bivariate-only sections
+            document.getElementById('step1012Card').classList.toggle('hidden', mode === 'Correlation');
+            document.getElementById('step1415Card').classList.toggle('hidden', mode === 'Correlation');
+
+            updateHowItWorks();
+            displaySteps();
+        }
+
+        // Event listeners for mode change
+        document.querySelectorAll('input[name="mode"]').forEach(radio => {
+            radio.addEventListener('change', updateMode);
+        });
+
+        // Display vignette
         function displayVignette() {
             const vignette = document.getElementById('vignetteCard');
             const text = document.getElementById('vignetteText');
 
             text.innerHTML = `
                 <div class="accent">
-                    <h3>${state.scenario.name}</h3>
+                    <h3>${state.scenario.title}</h3>
                     <p style="margin: 10px 0;">${state.scenario.vignette}</p>
-                    <hr style="margin: 15px 0; border: none; border-top: 1px solid #ccc;">
-                    <strong>Kernconcepten:</strong>
-                    ${state.scenario.concepts.map(c => `<p style="margin: 5px 0;">${c}</p>`).join('')}
                 </div>
             `;
 
             vignette.classList.remove('hidden');
         }
 
+        // Display data table
         function displayData() {
-            const card = document.getElementById('dataCard');
-            const table = document.getElementById('dataTable');
+            const container = document.getElementById('dataTableContainer');
 
-            document.getElementById('varXLabel').textContent = state.scenario.varXLabel;
-            document.getElementById('varYLabel').textContent = state.scenario.varYLabel;
-
-            let html = `
-                <thead>
-                    <tr>
-                        <th>Eenheid</th>
-                        <th>X: ${state.scenario.varXLabel}</th>
-                        <th>Y: ${state.scenario.varYLabel}</th>
-                    </tr>
-                </thead>
-                <tbody>
+            document.getElementById('varsLabel').innerHTML = `
+                <strong>Generieke mapping:</strong> X = ${state.scenario.varX} &nbsp;&nbsp; Y = ${state.scenario.varY}
             `;
+
+            let html = `<table><thead><tr>
+                <th>${state.scenario.entity}</th>
+                <th>${state.scenario.varX}</th>
+                <th>${state.scenario.varY}</th>
+            </tr></thead><tbody>`;
 
             state.data.forEach(d => {
-                html += `
-                    <tr>
-                        <td>${d.id}</td>
-                        <td>${d.x.toFixed(2)}</td>
-                        <td>${d.y.toFixed(2)}</td>
-                    </tr>
-                `;
+                html += `<tr>
+                    <td>${state.scenario.entity} ${d.id}</td>
+                    <td>${d.x.toFixed(2)}</td>
+                    <td>${d.y.toFixed(2)}</td>
+                </tr>`;
             });
 
-            html += '</tbody>';
-            table.innerHTML = html;
-            card.classList.remove('hidden');
-        }
+            html += '</tbody></table>';
+            container.innerHTML = html;
 
-        function showStep1() {
+            // Show step cards
             document.getElementById('step1Card').classList.remove('hidden');
-            document.getElementById('step2Card').classList.add('hidden');
-
-            // Reset inputs
-            document.getElementById('meanX').value = '';
-            document.getElementById('meanY').value = '';
-            document.getElementById('meanX').classList.remove('valid', 'invalid');
-            document.getElementById('meanY').classList.remove('valid', 'invalid');
-            document.getElementById('lightMeanX').style.background = '#BDBDBD';
-            document.getElementById('lightMeanY').style.background = '#BDBDBD';
-            document.getElementById('meansFeedback').innerHTML = '';
+            document.getElementById('step234Card').classList.remove('hidden');
+            document.getElementById('step56Card').classList.remove('hidden');
+            document.getElementById('step79Card').classList.remove('hidden');
         }
 
-        // ============================================================
-        // VALIDATION FUNCTIONS
-        // ============================================================
+        // Display deviations table
+        function displayDeviationsTable() {
+            const container = document.getElementById('deviationsTableContainer');
 
-        function round4dp(val) {
-            return Math.round(val * 10000) / 10000;
-        }
-
-        function checkValue(userVal, trueVal, tolerance = 0.0005) {
-            const user = parseFloat(userVal);
-            const truth = parseFloat(trueVal);
-
-            if (isNaN(user)) return null;
-
-            // Check if rounded values match (4 decimals)
-            return round4dp(user) === round4dp(truth);
-        }
-
-        function checkMeans() {
-            const meanXInput = document.getElementById('meanX');
-            const meanYInput = document.getElementById('meanY');
-            const lightX = document.getElementById('lightMeanX');
-            const lightY = document.getElementById('lightMeanY');
-            const feedback = document.getElementById('meansFeedback');
-
-            const meanXVal = meanXInput.value;
-            const meanYVal = meanYInput.value;
-
-            const xCorrect = checkValue(meanXVal, state.trueValues.meanX);
-            const yCorrect = checkValue(meanYVal, state.trueValues.meanY);
-
-            // Update X
-            if (xCorrect === true) {
-                meanXInput.classList.remove('invalid');
-                meanXInput.classList.add('valid');
-                lightX.style.background = '#00C853';
-            } else if (xCorrect === false) {
-                meanXInput.classList.remove('valid');
-                meanXInput.classList.add('invalid');
-                lightX.style.background = '#D50000';
-            } else {
-                meanXInput.classList.remove('valid', 'invalid');
-                lightX.style.background = '#BDBDBD';
-            }
-
-            // Update Y
-            if (yCorrect === true) {
-                meanYInput.classList.remove('invalid');
-                meanYInput.classList.add('valid');
-                lightY.style.background = '#00C853';
-            } else if (yCorrect === false) {
-                meanYInput.classList.remove('valid');
-                meanYInput.classList.add('invalid');
-                lightY.style.background = '#D50000';
-            } else {
-                meanYInput.classList.remove('valid', 'invalid');
-                lightY.style.background = '#BDBDBD';
-            }
-
-            // Feedback
-            if (xCorrect === true && yCorrect === true) {
-                feedback.innerHTML = `
-                    <div class="feedback ok">
-                        ✅ Correct! Beide gemiddelden zijn juist berekend.<br>
-                        X̄ = ${round4dp(state.trueValues.meanX).toFixed(4)}<br>
-                        Ȳ = ${round4dp(state.trueValues.meanY).toFixed(4)}
-                    </div>
-                `;
-            } else if (xCorrect === false || yCorrect === false) {
-                let msg = '❌ Controleer uw berekeningen. ';
-                if (xCorrect === false) msg += 'X̄ is niet correct. ';
-                if (yCorrect === false) msg += 'Ȳ is niet correct.';
-                msg += '<br><br><em>Tip: Som alle waarden en deel door N. Rond af op 4 decimalen.</em>';
-
-                feedback.innerHTML = `<div class="feedback err">${msg}</div>`;
-            } else {
-                feedback.innerHTML = '';
-            }
-        }
-
-        function proceedToStep2() {
-            const meanXVal = document.getElementById('meanX').value;
-            const meanYVal = document.getElementById('meanY').value;
-
-            const xCorrect = checkValue(meanXVal, state.trueValues.meanX);
-            const yCorrect = checkValue(meanYVal, state.trueValues.meanY);
-
-            if (xCorrect !== true || yCorrect !== true) {
-                alert('Vul eerst de juiste gemiddelden in voordat u verder gaat!');
-                return;
-            }
-
-            displayStep2();
-        }
-
-        function displayStep2() {
-            document.getElementById('step2Card').classList.remove('hidden');
-            const table = document.getElementById('deviationsTable');
-
-            let html = `
-                <thead>
-                    <tr>
-                        <th>Eenheid</th>
-                        <th>X</th>
-                        <th>Y</th>
-                        <th>(X - X̄)</th>
-                        <th>(Y - Ȳ)</th>
-                        <th>(X - X̄)²</th>
-                        <th>(Y - Ȳ)²</th>
-                    </tr>
-                </thead>
-                <tbody>
-            `;
+            let html = `<table><thead><tr>
+                <th>${state.scenario.entity}</th>
+                <th>X</th>
+                <th>Y</th>
+                <th>(X - X̄)</th>
+                <th>(Y - Ȳ)</th>
+                <th>(X - X̄)²</th>
+                <th>(Y - Ȳ)²</th>
+                <th>(X - X̄)(Y - Ȳ)</th>
+            </tr></thead><tbody>`;
 
             state.data.forEach((d, i) => {
-                const devs = state.trueValues.deviations[i];
-                html += `
-                    <tr>
-                        <td>${d.id}</td>
-                        <td>${d.x.toFixed(2)}</td>
-                        <td>${d.y.toFixed(2)}</td>
-                        <td>${devs.devX.toFixed(4)}</td>
-                        <td>${devs.devY.toFixed(4)}</td>
-                        <td><input type="number" step="0.0001" class="dev-input" data-row="${i}" data-col="devX2" oninput="checkDeviations()"></td>
-                        <td><input type="number" step="0.0001" class="dev-input" data-row="${i}" data-col="devY2" oninput="checkDeviations()"></td>
-                    </tr>
-                `;
+                const dev = state.truth.deviations[i];
+                html += `<tr>
+                    <td>${state.scenario.entity} ${d.id}</td>
+                    <td>${d.x.toFixed(2)}</td>
+                    <td>${d.y.toFixed(2)}</td>
+                    <td>${dev.devX.toFixed(4)}</td>
+                    <td>${dev.devY.toFixed(4)}</td>
+                    <td><input type="number" step="0.0001" data-row="${i}" data-col="devX2" oninput="validateDeviations()"></td>
+                    <td><input type="number" step="0.0001" data-row="${i}" data-col="devY2" oninput="validateDeviations()"></td>
+                    <td><input type="number" step="0.0001" data-row="${i}" data-col="devXY" oninput="validateDeviations()"></td>
+                </tr>`;
             });
 
-            html += '</tbody>';
-            table.innerHTML = html;
+            html += '</tbody></table>';
+            container.innerHTML = html;
 
-            // Create lights
+            // Create traffic lights
             const lightsDiv = document.getElementById('deviationsLights');
             lightsDiv.innerHTML = '';
             state.data.forEach((d, i) => {
@@ -662,59 +816,422 @@
             });
         }
 
-        function checkDeviations() {
-            const inputs = document.querySelectorAll('.dev-input');
+        // Display steps based on mode
+        function displaySteps() {
+            const stepsDiv = document.getElementById('stepsDisplay');
+
+            if (state.mode === 'Correlation') {
+                stepsDiv.innerHTML = `
+                    <div class="accent">
+                        <b>Stappen voor correlatieanalyse (NL)</b>
+                        <ol style="margin:6px 0 0 18px;">
+                            <li>Bereken het rekenkundig gemiddelde van X en Y.</li>
+                            <li>Bereken de afwijking van elke eenheid ten opzichte van het gemiddelde voor X en voor Y.</li>
+                            <li>Kwadrateer deze afwijkingen.</li>
+                            <li>Tel de gekwadrateerde afwijkingen op voor X en voor Y.</li>
+                            <li>Bereken Var(X) en Var(Y) door deze sommen te delen door (n − 1).</li>
+                            <li>Neem de vierkantswortel om SD(X) en SD(Y) te krijgen.</li>
+                            <li>Bereken de kruisproductsom Σ(X−X̄)(Y−Ȳ).</li>
+                            <li>Deel door (n − 1) om Cov(X, Y) te krijgen.</li>
+                            <li>Bereken SD(X) × SD(Y).</li>
+                            <li><b>Correlatie r = Cov(X,Y) / (SD(X)×SD(Y))</b></li>
+                        </ol>
+                    </div>
+                `;
+            } else {
+                stepsDiv.innerHTML = `
+                    <div class="accent">
+                        <b>Stappen voor bivariate regressieanalyse (NL)</b>
+                        <ol style="margin:6px 0 0 18px;">
+                            <li>Bereken het rekenkundig gemiddelde van X en Y.</li>
+                            <li>Bereken de afwijking van elke eenheid.</li>
+                            <li>Kwadrateer deze afwijkingen.</li>
+                            <li>Tel de gekwadrateerde afwijkingen op.</li>
+                            <li>Bereken Var(X) en Var(Y).</li>
+                            <li>Neem de vierkantswortel voor SD(X) en SD(Y).</li>
+                            <li>Bereken de kruisproductsom.</li>
+                            <li>Deel door (n − 1) voor Cov(X, Y).</li>
+                            <li>Bereken SD(X) × SD(Y).</li>
+                            <li>Correlatie r = Cov(X,Y) / (SD(X)×SD(Y)).</li>
+                            <li>Helling b = Cov(X,Y) / Var(X).</li>
+                            <li>Intercept a = Ȳ − b·X̄.</li>
+                            <li>Voorspelling Ŷ = a + b·X.</li>
+                            <li>R² = r².</li>
+                            <li>Vervreemding = 1 − R².</li>
+                        </ol>
+                    </div>
+                `;
+            }
+        }
+
+        // Update How It Works section
+        function updateHowItWorks() {
+            const div = document.getElementById('howItWorks');
+
+            if (state.mode === 'Correlation') {
+                div.innerHTML = `
+                    <ul style='margin:6px 0 0 0px; padding-left: 20px; font-size: 14px;'>
+                        <li>Oefen <b>correlatieanalyse</b> met criminologische datasets.</li>
+                        <li>Voltooi <b>9 stappen</b> om de correlatiecoëfficiënt te berekenen (gebruik 4 decimalen).</li>
+                        <li>Cellen worden groen wanneer correct, rood wanneer fout.</li>
+                    </ul>
+                `;
+            } else {
+                div.innerHTML = `
+                    <ul style='margin:6px 0 0 0px; padding-left: 20px; font-size: 14px;'>
+                        <li>Oefen <b>bivariate regressieanalyse</b>.</li>
+                        <li>Voltooi <b>15 stappen</b> voor volledige correlatie en regressie (gebruik 4 decimalen).</li>
+                        <li>Cellen worden groen wanneer correct, rood wanneer fout.</li>
+                    </ul>
+                `;
+            }
+        }
+
+        // Validation functions
+        function validateStep1() {
+            const meanX = document.getElementById('meanX');
+            const meanY = document.getElementById('meanY');
+            const lightX = document.getElementById('lightMeanX');
+            const lightY = document.getElementById('lightMeanY');
+            const feedback = document.getElementById('step1Feedback');
+
+            const xCorrect = checkValue(meanX.value, state.truth.meanX, 4);
+            const yCorrect = checkValue(meanY.value, state.truth.meanY, 4);
+
+            // Update X
+            meanX.classList.remove('valid', 'invalid');
+            if (xCorrect === true) {
+                meanX.classList.add('valid');
+                lightX.style.background = '#00C853';
+            } else if (xCorrect === false) {
+                meanX.classList.add('invalid');
+                lightX.style.background = '#D50000';
+            } else {
+                lightX.style.background = '#BDBDBD';
+            }
+
+            // Update Y
+            meanY.classList.remove('valid', 'invalid');
+            if (yCorrect === true) {
+                meanY.classList.add('valid');
+                lightY.style.background = '#00C853';
+            } else if (yCorrect === false) {
+                meanY.classList.add('invalid');
+                lightY.style.background = '#D50000';
+            } else {
+                lightY.style.background = '#BDBDBD';
+            }
+
+            // Feedback
+            if (xCorrect === true && yCorrect === true) {
+                feedback.innerHTML = `
+                    <div class="feedback ok">
+                        ✅ Deel II (Stap 1) voltooid! Alle gemiddelden zijn correct.
+                    </div>
+                `;
+                // Enable deviations table
+                displayDeviationsTable();
+            } else if (xCorrect === false || yCorrect === false) {
+                feedback.innerHTML = `
+                    <div class="feedback err">
+                        ❌ Controleer Stap 1: alle gemiddelden moeten overeenkomen op 4 decimalen.
+                    </div>
+                `;
+            } else {
+                feedback.innerHTML = '';
+            }
+
+            checkAllSteps();
+        }
+
+        function validateDeviations() {
+            // Validate all deviation inputs
+            const inputs = document.querySelectorAll('#deviationsTableContainer input[data-row]');
             let allCorrect = true;
 
             inputs.forEach(input => {
                 const row = parseInt(input.dataset.row);
                 const col = input.dataset.col;
-                const trueVal = state.trueValues.deviations[row][col];
-                const userVal = input.value;
+                const truthVal = state.truth.deviations[row][col];
+                const isCorrect = checkValue(input.value, truthVal, 4);
 
-                const isCorrect = checkValue(userVal, trueVal);
-
+                input.classList.remove('valid', 'invalid');
                 if (isCorrect === true) {
-                    input.classList.remove('invalid');
                     input.classList.add('valid');
                 } else if (isCorrect === false) {
-                    input.classList.remove('valid');
                     input.classList.add('invalid');
-                    allCorrect = false;
-                } else {
-                    input.classList.remove('valid', 'invalid');
                     allCorrect = false;
                 }
             });
 
             // Update row lights
             for (let i = 0; i < state.data.length; i++) {
-                const inputsInRow = document.querySelectorAll(`.dev-input[data-row="${i}"]`);
-                const rowCorrect = Array.from(inputsInRow).every(inp => inp.classList.contains('valid'));
+                const rowInputs = document.querySelectorAll(`input[data-row="${i}"]`);
+                const rowCorrect = Array.from(rowInputs).every(inp => inp.classList.contains('valid'));
                 const light = document.getElementById(`lightDev${i}`);
-
-                if (rowCorrect && inputsInRow.length > 0) {
-                    light.style.background = '#00C853';
-                } else {
-                    light.style.background = '#BDBDBD';
-                }
+                light.style.background = rowCorrect ? '#00C853' : '#BDBDBD';
             }
 
-            // Feedback
-            const feedback = document.getElementById('deviationsFeedback');
+            const feedback = document.getElementById('step234Feedback');
             if (allCorrect) {
-                feedback.innerHTML = `
-                    <div class="feedback ok">
-                        ✅ Uitstekend! Alle kwadraten zijn correct berekend.
-                    </div>
-                `;
+                feedback.innerHTML = '<div class="feedback ok">✅ Deel III voltooid! Alle berekeningen correct.</div>';
+            } else {
+                feedback.innerHTML = '';
+            }
+
+            checkAllSteps();
+        }
+
+        function validateStep4() {
+            const totX2 = document.getElementById('totX2');
+            const totY2 = document.getElementById('totY2');
+            const feedback = document.getElementById('step4Feedback');
+
+            const xCorrect = checkValue(totX2.value, state.truth.sumDevX2, 4);
+            const yCorrect = checkValue(totY2.value, state.truth.sumDevY2, 4);
+
+            totX2.classList.remove('valid', 'invalid');
+            totY2.classList.remove('valid', 'invalid');
+
+            if (xCorrect === true) totX2.classList.add('valid');
+            else if (xCorrect === false) totX2.classList.add('invalid');
+
+            if (yCorrect === true) totY2.classList.add('valid');
+            else if (yCorrect === false) totY2.classList.add('invalid');
+
+            if (xCorrect === true && yCorrect === true) {
+                feedback.innerHTML = '<div class="feedback ok">✅ Stap 4 voltooid! Sommen correct.</div>';
+            } else if (xCorrect === false || yCorrect === false) {
+                feedback.innerHTML = '<div class="feedback err">❌ Controleer uw totaalberekeningen.</div>';
+            } else {
+                feedback.innerHTML = '';
+            }
+
+            checkAllSteps();
+        }
+
+        function validateStep56() {
+            const inputs = {
+                varX: document.getElementById('varX'),
+                varY: document.getElementById('varY'),
+                sdX: document.getElementById('sdX'),
+                sdY: document.getElementById('sdY')
+            };
+
+            const checks = {
+                varX: checkValue(inputs.varX.value, state.truth.varX, 4),
+                varY: checkValue(inputs.varY.value, state.truth.varY, 4),
+                sdX: checkValue(inputs.sdX.value, state.truth.sdX, 4),
+                sdY: checkValue(inputs.sdY.value, state.truth.sdY, 4)
+            };
+
+            Object.keys(inputs).forEach(key => {
+                inputs[key].classList.remove('valid', 'invalid');
+                if (checks[key] === true) inputs[key].classList.add('valid');
+                else if (checks[key] === false) inputs[key].classList.add('invalid');
+            });
+
+            const feedback = document.getElementById('step56Feedback');
+            const allCorrect = Object.values(checks).every(c => c === true);
+
+            if (allCorrect) {
+                feedback.innerHTML = '<div class="feedback ok">✅ Deel IV (Stappen 5-6) voltooid! Alle varianties en standaarddeviaties correct.</div>';
+            } else {
+                feedback.innerHTML = '';
+            }
+
+            checkAllSteps();
+        }
+
+        function validateStep79() {
+            const inputs = {
+                crossProduct: document.getElementById('crossProduct'),
+                covariance: document.getElementById('covariance'),
+                sdProduct: document.getElementById('sdProduct')
+            };
+
+            const checks = {
+                crossProduct: checkValue(inputs.crossProduct.value, state.truth.sumDevXY, 4),
+                covariance: checkValue(inputs.covariance.value, state.truth.covariance, 4),
+                sdProduct: checkValue(inputs.sdProduct.value, state.truth.sdProduct, 4)
+            };
+
+            Object.keys(inputs).forEach(key => {
+                inputs[key].classList.remove('valid', 'invalid');
+                if (checks[key] === true) inputs[key].classList.add('valid');
+                else if (checks[key] === false) inputs[key].classList.add('invalid');
+            });
+
+            const feedback = document.getElementById('step79Feedback');
+            const allCorrect = Object.values(checks).every(c => c === true);
+
+            if (allCorrect) {
+                if (state.mode === 'Correlation') {
+                    // In correlation mode, calculate and show correlation here
+                    const correlationValue = round4dp(state.truth.covariance / state.truth.sdProduct);
+                    feedback.innerHTML = `
+                        <div class="feedback ok">
+                            ✅ Deel V (Stappen 7-9) voltooid! Correlatiecoëfficiënt correct berekend.<br>
+                            <strong>Correlatie r = ${correlationValue.toFixed(4)}</strong>
+                        </div>
+                    `;
+                } else {
+                    feedback.innerHTML = '<div class="feedback ok">✅ Deel V (Stappen 7-9) voltooid! Covariatie en SD-product correct.</div>';
+                }
+            } else {
+                feedback.innerHTML = '';
+            }
+
+            checkAllSteps();
+        }
+
+        function validateStep1012() {
+            const inputs = {
+                correlation: document.getElementById('correlation'),
+                slope: document.getElementById('slope'),
+                intercept: document.getElementById('intercept')
+            };
+
+            const checks = {
+                correlation: checkValue(inputs.correlation.value, state.truth.correlation, 4),
+                slope: checkValue(inputs.slope.value, state.truth.slope, 4),
+                intercept: checkValue(inputs.intercept.value, state.truth.intercept, 4)
+            };
+
+            Object.keys(inputs).forEach(key => {
+                inputs[key].classList.remove('valid', 'invalid');
+                if (checks[key] === true) inputs[key].classList.add('valid');
+                else if (checks[key] === false) inputs[key].classList.add('invalid');
+            });
+
+            const feedback = document.getElementById('step1012Feedback');
+            const allCorrect = Object.values(checks).every(c => c === true);
+
+            if (allCorrect) {
+                feedback.innerHTML = '<div class="feedback ok">✅ Deel VI (Stappen 10-12) voltooid! Correlatie, helling en intercept correct.</div>';
+            } else {
+                feedback.innerHTML = '';
+            }
+
+            checkAllSteps();
+        }
+
+        function validateStep1415() {
+            const inputs = {
+                rSquared: document.getElementById('rSquared'),
+                alienation: document.getElementById('alienation')
+            };
+
+            const checks = {
+                rSquared: checkValue(inputs.rSquared.value, state.truth.rSquared, 4),
+                alienation: checkValue(inputs.alienation.value, state.truth.alienation, 4)
+            };
+
+            Object.keys(inputs).forEach(key => {
+                inputs[key].classList.remove('valid', 'invalid');
+                if (checks[key] === true) inputs[key].classList.add('valid');
+                else if (checks[key] === false) inputs[key].classList.add('invalid');
+            });
+
+            const feedback = document.getElementById('step1415Feedback');
+            const allCorrect = Object.values(checks).every(c => c === true);
+
+            if (allCorrect) {
+                feedback.innerHTML = '<div class="feedback ok">✅ Deel VIII (Stappen 14-15) voltooid! R² en vervreemding correct.</div>';
+            } else {
+                feedback.innerHTML = '';
+            }
+
+            checkAllSteps();
+        }
+
+        function checkAllSteps() {
+            // Check if all steps are complete based on mode
+            const step1OK = checkValue(document.getElementById('meanX').value, state.truth.meanX, 4) === true &&
+                checkValue(document.getElementById('meanY').value, state.truth.meanY, 4) === true;
+
+            const step4OK = checkValue(document.getElementById('totX2').value, state.truth.sumDevX2, 4) === true &&
+                checkValue(document.getElementById('totY2').value, state.truth.sumDevY2, 4) === true;
+
+            const step56OK = checkValue(document.getElementById('varX').value, state.truth.varX, 4) === true &&
+                checkValue(document.getElementById('varY').value, state.truth.varY, 4) === true &&
+                checkValue(document.getElementById('sdX').value, state.truth.sdX, 4) === true &&
+                checkValue(document.getElementById('sdY').value, state.truth.sdY, 4) === true;
+
+            const step79OK = checkValue(document.getElementById('crossProduct').value, state.truth.sumDevXY, 4) === true &&
+                checkValue(document.getElementById('covariance').value, state.truth.covariance, 4) === true &&
+                checkValue(document.getElementById('sdProduct').value, state.truth.sdProduct, 4) === true;
+
+            let allComplete = step1OK && step4OK && step56OK && step79OK;
+
+            if (state.mode === 'Bivariate') {
+                const step1012OK = checkValue(document.getElementById('correlation').value, state.truth.correlation, 4) === true &&
+                    checkValue(document.getElementById('slope').value, state.truth.slope, 4) === true &&
+                    checkValue(document.getElementById('intercept').value, state.truth.intercept, 4) === true;
+
+                const step1415OK = checkValue(document.getElementById('rSquared').value, state.truth.rSquared, 4) === true &&
+                    checkValue(document.getElementById('alienation').value, state.truth.alienation, 4) === true;
+
+                allComplete = allComplete && step1012OK && step1415OK;
+            }
+
+            const successDiv = document.getElementById('successMessage');
+            if (allComplete) {
+                if (state.mode === 'Correlation') {
+                    successDiv.innerHTML = `
+                        <div class="success-box">
+                            <h3>🎉 Uitstekend Werk! Correlatieanalyse Voltooid!</h3>
+                            <p><strong>Gefeliciteerd!</strong> U heeft met succes de 9-stappen correlatieanalyse voltooid.</p>
+                            <p><strong>Correlatie r = ${state.truth.correlation.toFixed(4)}</strong></p>
+                            <p style="color: #1B5E20;"><strong>Wilt u voorspellingen leren?</strong> Schakel over naar 'Bivariate Regressie' voor de volledige 15-stappenanalyse!</p>
+                        </div>
+                    `;
+                } else {
+                    successDiv.innerHTML = `
+                        <div class="success-box">
+                            <h3>🎉 Uitstekend Werk! Alle 15 Stappen Voltooid!</h3>
+                            <p><strong>Gefeliciteerd!</strong> U heeft met succes de volledige 15-stappen regressieanalyse voltooid.</p>
+                            <ul style="margin: 10px 0;">
+                                <li><strong>Correlatie r = ${state.truth.correlation.toFixed(4)}</strong></li>
+                                <li><strong>R² = ${state.truth.rSquared.toFixed(4)}</strong></li>
+                                <li><strong>Helling b = ${state.truth.slope.toFixed(4)}</strong></li>
+                                <li><strong>Intercept a = ${state.truth.intercept.toFixed(4)}</strong></li>
+                            </ul>
+                        </div>
+                    `;
+                }
+                successDiv.classList.remove('hidden');
+            } else {
+                successDiv.classList.add('hidden');
             }
         }
 
-        // Initialize on load
-        window.addEventListener('load', () => {
-            console.log('Correlatie Prototype geladen');
-        });
+        function resetAllInputs() {
+            // Reset all input fields
+            const inputs = document.querySelectorAll('input[type="number"]');
+            inputs.forEach(input => {
+                if (input.id !== 'n' && input.id !== 'seed') {
+                    input.value = '';
+                    input.classList.remove('valid', 'invalid');
+                }
+            });
+
+            // Reset lights
+            document.querySelectorAll('.light').forEach(light => {
+                light.style.background = '#BDBDBD';
+            });
+
+            // Clear feedbacks
+            document.querySelectorAll('[id$="Feedback"]').forEach(div => {
+                div.innerHTML = '';
+            });
+
+            document.getElementById('successMessage').classList.add('hidden');
+        }
+
+        // Initialize
+        updateMode();
+        updateHowItWorks();
     </script>
 </body>
 
