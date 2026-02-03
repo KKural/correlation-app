@@ -691,55 +691,84 @@
 
             const rng = new SeededRandom(seed);
             const r_target = state.scenario.r_target;
+            const k = 2; // number of variables
 
-            // Generate raw correlated data (matching R's algorithm)
-            const Z = [];
-            for (let i = 0; i < n; i++) {
-                Z.push([rng.normal(0, 1), rng.normal(0, 1)]);
+            // Step 1: Generate Z matrix (n x k) - R fills COLUMN-WISE
+            // rnorm(n * k) generates all values, then matrix() fills columns
+            const Z = Array(n).fill(0).map(() => [0, 0]);
+            for (let col = 0; col < k; col++) {
+                for (let row = 0; row < n; row++) {
+                    Z[row][col] = rng.normal(0, 1);
+                }
             }
 
-            // Create correlation structure (simplified 2x2 matrix)
-            const M = [
-                [rng.normal(0, 1), rng.normal(0, 1)],
-                [rng.normal(0, 1), rng.normal(0, 1)]
-            ];
-            // Symmetrize
-            M[1][0] = (M[1][0] + M[0][1]) / 2;
-            M[0][1] = M[1][0];
-
-            // Matrix multiplication Z %*% M
-            const XM = [];
-            for (let i = 0; i < n; i++) {
-                XM.push([
-                    Z[i][0] * M[0][0] + Z[i][1] * M[1][0],
-                    Z[i][0] * M[0][1] + Z[i][1] * M[1][1]
-                ]);
+            // Step 2: Generate M matrix (k x k) - M1 matrix, column-wise
+            const M1 = Array(k).fill(0).map(() => Array(k).fill(0));
+            for (let col = 0; col < k; col++) {
+                for (let row = 0; row < k; row++) {
+                    M1[row][col] = rng.normal(0, 1);
+                }
             }
 
-            // Apply scale() if n >= 2 (standardize to mean=0, sd=1)
+            // Step 3: Generate second matrix for transpose, column-wise
+            const M2 = Array(k).fill(0).map(() => Array(k).fill(0));
+            for (let col = 0; col < k; col++) {
+                for (let row = 0; row < k; row++) {
+                    M2[row][col] = rng.normal(0, 1);
+                }
+            }
+
+            // Step 4: M = (M1 + t(M2)) / 2 (symmetrize)
+            const M = Array(k).fill(0).map(() => Array(k).fill(0));
+            for (let i = 0; i < k; i++) {
+                for (let j = 0; j < k; j++) {
+                    M[i][j] = (M1[i][j] + M2[j][i]) / 2;
+                }
+            }
+
+            // Step 5: XM = Z %*% M (matrix multiplication)
+            const XM = Array(n).fill(0).map(() => Array(k).fill(0));
+            for (let i = 0; i < n; i++) {
+                for (let j = 0; j < k; j++) {
+                    XM[i][j] = 0;
+                    for (let m = 0; m < k; m++) {
+                        XM[i][j] += Z[i][m] * M[m][j];
+                    }
+                }
+            }
+
+            // Step 6: scale() - standardize to mean=0, sd=1 if n >= 2
             let X = XM.map(row => [...row]);
             if (n >= 2) {
-                for (let col = 0; col < 2; col++) {
+                for (let col = 0; col < k; col++) {
                     const vals = X.map(row => row[col]);
                     const mean = vals.reduce((a, b) => a + b, 0) / n;
-                    const sd = Math.sqrt(vals.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (n - 1));
+                    const variance = vals.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (n - 1);
+                    const sd = Math.sqrt(variance);
                     for (let i = 0; i < n; i++) {
                         X[i][col] = sd > 0 ? (X[i][col] - mean) / sd : 0;
                     }
                 }
             }
 
-            // Scale to friendly ranges using runif()
-            const centers = [rng.next() * 80 + 5, rng.next() * 80 + 5]; // runif(2, min=5, max=85)
-            const scales = [rng.next() * 12 + 4, rng.next() * 12 + 4];  // runif(2, min=4, max=16)
-
-            // Apply centering and scaling
-            for (let i = 0; i < n; i++) {
-                X[i][0] = centers[0] + scales[0] * X[i][0];
-                X[i][1] = centers[1] + scales[1] * X[i][1];
+            // Step 7: Generate centers and scales using runif()
+            const centers = [];
+            const scales = [];
+            for (let j = 0; j < k; j++) {
+                centers.push(rng.next() * 80 + 5); // runif(1, min=5, max=85)
+            }
+            for (let j = 0; j < k; j++) {
+                scales.push(rng.next() * 12 + 4); // runif(1, min=4, max=16)
             }
 
-            // Apply clamping based on variable name patterns
+            // Step 8: Apply centering and scaling, round to 4 decimals (matching R)
+            for (let j = 0; j < k; j++) {
+                for (let i = 0; i < n; i++) {
+                    X[i][j] = round4dp(centers[j] + scales[j] * X[i][j]);
+                }
+            }
+
+            // Step 9: Apply clamping based on variable name patterns
             const clampX = isPercentOrScore(state.scenario.varX, state.scenario.unitX);
             const clampY = isPercentOrScore(state.scenario.varY, state.scenario.unitY);
             const countY = isCount(state.scenario.varY);
@@ -749,16 +778,25 @@
                 let x = X[i][0];
                 let y = X[i][1];
 
-                if (clampX) x = Math.max(0, Math.min(100, x));
-                else x = Math.max(0, x);
+                // Apply clamping (R does this AFTER the round(4) step)
+                if (clampX) {
+                    x = Math.max(0, Math.min(100, x));
+                } else {
+                    x = Math.max(0, x);
+                }
 
-                if (clampY) y = Math.max(0, Math.min(100, y));
-                else if (countY) y = Math.max(0, Math.round(y));
-                else y = Math.max(0, y);
+                if (clampY) {
+                    y = Math.max(0, Math.min(100, y));
+                } else if (countY) {
+                    y = Math.round(y);
+                    y = Math.max(0, y);
+                } else {
+                    y = Math.max(0, y);
+                }
 
                 state.data.push({
                     id: i + 1,
-                    x: round2dp(x),
+                    x: round2dp(x), // Display with 2 decimals
                     y: round2dp(y)
                 });
             }
