@@ -488,7 +488,7 @@
             truth: {}
         };
 
-        // Scenarios (matching R version exactly)
+        // Scenarios (matching R version)
         const scenarios = {
             crime_program: {
                 id: 'crime_program',
@@ -496,8 +496,6 @@
                 vignette: 'Een stad heeft een preventieprogramma geïmplementeerd in verschillende buurten. Onderzoek of een hogere blootstelling samenhangt met lagere inbraakcijfers.',
                 varX: 'ProgrammaBlootstelling',
                 varY: 'InbraakCijfer',
-                unitX: '%',
-                unitY: 'per 1.000',
                 r_target: -0.45,
                 entity: 'Buurt'
             },
@@ -507,8 +505,6 @@
                 vignette: 'Straten variëren in aantal voetpatrouille-uren op criminele hotspots. Beoordeel de relatie met het aantal meldingen aan de politie.',
                 varX: 'VoetPatrouilleUren',
                 varY: 'MeldingenAanPolitie',
-                unitX: 'uren/week',
-                unitY: 'per week',
                 r_target: -0.25,
                 entity: 'Straat'
             },
@@ -518,8 +514,6 @@
                 vignette: 'Ondervraagde bewoners beoordelen fysieke/sociale wanorde en angst voor criminaliteit.',
                 varX: 'WanordeIndex',
                 varY: 'AngstScore',
-                unitX: '0–10',
-                unitY: '0–100',
                 r_target: 0.55,
                 entity: 'Buurt'
             },
@@ -529,8 +523,6 @@
                 vignette: 'Percepties van procedurale rechtvaardigheid versus vertrouwen in politie per district.',
                 varX: 'ProcedureleRechtvaardigheid',
                 varY: 'VertrouwenInPolitie',
-                unitX: '1–7',
-                unitY: '1–7',
                 r_target: 0.70,
                 entity: 'District'
             },
@@ -540,8 +532,6 @@
                 vignette: 'Toezichtscores van huishoudens versus slachtofferschapincidenten.',
                 varX: 'Toezicht',
                 varY: 'Slachtofferschap',
-                unitX: '0–10',
-                unitY: 'aantal',
                 r_target: -0.40,
                 entity: 'Huishouden'
             },
@@ -551,8 +541,6 @@
                 vignette: 'Impulsiviteit versus agressieve incidenten onder jongeren.',
                 varX: 'Impulsiviteit',
                 varY: 'AgressieveIncidenten',
-                unitX: 'z-score',
-                unitY: 'schoolmeldingen/trimester',
                 r_target: 0.45,
                 entity: 'Student'
             },
@@ -562,8 +550,6 @@
                 vignette: 'Begeleiding na vrijlating versus gevalideerde recidiverisicoscore.',
                 varX: 'OndersteuningsUren',
                 varY: 'RecidiveRisico',
-                unitX: 'per maand',
-                unitY: '0–100',
                 r_target: -0.35,
                 entity: 'Deelnemer'
             },
@@ -573,14 +559,12 @@
                 vignette: 'Phishing-trainingsuren versus gesimuleerde klikratio.',
                 varX: 'TrainingsUren',
                 varY: 'Klikratio',
-                unitX: 'uren',
-                unitY: '%',
                 r_target: -0.55,
                 entity: 'Medewerker'
             }
         };
 
-        // RNG - Matching R's RNG exactly (Mersenne Twister approximation)
+        // RNG - Matching R's RNG exactly (Mersenne Twister)
         class SeededRandom {
             constructor(seed) {
                 this.seed = seed >>> 0; // Convert to unsigned 32-bit
@@ -683,92 +667,20 @@
             const rng = new SeededRandom(seed);
             const r_target = state.scenario.r_target;
 
-            // Generate latent variables (matching R's algorithm)
-            const Xz = [];
-            const eps = [];
-            for (let i = 0; i < n; i++) {
-                Xz.push(rng.normal(0, 1));
-            }
-            for (let i = 0; i < n; i++) {
-                eps.push(rng.normal(0, 1));
-            }
-
-            const Yz = Xz.map((xz, i) => r_target * xz + Math.sqrt(Math.max(0, 1 - r_target * r_target)) * eps[i]);
-
-            // Get unit-based centers and scales (matching R's switch statements)
-            function getCenterScale(unit, isX) {
-                if (isX) {
-                    switch (unit) {
-                        case '%': return { center: 50, scale: 20 };
-                        case '0–10': return { center: 5, scale: 2.5 };
-                        case '1–7': return { center: 4, scale: 1.2 };
-                        case 'uren': case 'uren/week': case 'hours': return { center: 20, scale: 8 };
-                        case 'per maand': case 'per month': return { center: 15, scale: 6 };
-                        case 'z-score': return { center: 0, scale: 1 };
-                        default: return { center: 30, scale: 8 };
-                    }
-                } else {
-                    switch (unit) {
-                        case 'per 1.000': case 'per 1,000': return { center: 20, scale: 8 };
-                        case 'per week': return { center: 60, scale: 14 };
-                        case '0–100': return { center: 60, scale: 15 };
-                        case '1–7': return { center: 4, scale: 1.2 };
-                        case '%': return { center: 30, scale: 12 };
-                        case 'aantal': case 'count': case 'schoolmeldingen/trimester': return { center: 6, scale: 3 };
-                        default: return { center: 60, scale: 12 };
-                    }
-                }
-            }
-
-            let { center: x_center, scale: x_scale } = getCenterScale(state.scenario.unitX, true);
-            let { center: y_center, scale: y_scale } = getCenterScale(state.scenario.unitY, false);
-
-            // Add dataset-level variability (matching R's runif calls)
-            x_center += rng.next() * 16 - 8; // runif(1, -8, 8)
-            x_scale *= 0.8 + rng.next() * 0.6; // runif(1, 0.8, 1.4)
-            y_center += rng.next() * 16 - 8;
-            y_scale *= 0.8 + rng.next() * 0.6;
-
-            // Scale function (matching R's scale())
-            function scaleVec(z) {
-                if (z.length < 2) return z;
-                const mean = z.reduce((a, b) => a + b, 0) / z.length;
-                const sd = Math.sqrt(z.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (z.length - 1));
-                if (sd === 0 || isNaN(sd)) return z;
-                return z.map(v => (v - mean) / sd);
-            }
-
-            const Xz_scaled = scaleVec(Xz);
-            const Yz_scaled = scaleVec(Yz);
-
-            // Generate variables with rounding to 4 decimals (matching R)
-            let Xv = Xz_scaled.map(z => round4dp(x_center + x_scale * z));
-            let Yv = Yz_scaled.map(z => round4dp(y_center + y_scale * z));
-
-            // Apply clamping based on variable names (matching R's logic)
-            function clampVec(vec, varName) {
-                if (/(Percent|Percentage|Score|Risico|Ratio|Cijfer|%)/.test(varName)) {
-                    return vec.map(v => Math.max(0, Math.min(100, v)));
-                } else if (/(Aantal|Incidenten|Meldingen)/.test(varName)) {
-                    return vec.map(v => Math.max(0, Math.round(v)));
-                }
-                return vec.map(v => Math.max(0, v));
-            }
-
-            Xv = clampVec(Xv, state.scenario.varX);
-            Yv = clampVec(Yv, state.scenario.varY);
-
-            // Create data array with 2 decimal display
             state.data = [];
             for (let i = 0; i < n; i++) {
+                const z1 = rng.normal(0, 1);
+                const z2 = rng.normal(0, 1);
+
+                const x = 50 + 15 * z1;
+                const y = 40 + 10 * (r_target * z1 + Math.sqrt(1 - r_target * r_target) * z2);
+
                 state.data.push({
                     id: i + 1,
-                    x: round2dp(Xv[i]),
-                    y: round2dp(Yv[i])
+                    x: round2dp(Math.max(0, x)),
+                    y: round2dp(Math.max(0, y))
                 });
             }
-
-            console.log('Generated data:', state.data);
 
             // Calculate truth values using the 2-decimal rounded data
             calculateTruthValues();
@@ -825,7 +737,6 @@
 
         // Update all UI elements
         function updateUI() {
-            console.log('updateUI called, state:', state);
             updateMode();
             displayVignette();
             displayData();
@@ -868,28 +779,11 @@
 
         // Display data table
         function displayData() {
-            console.log('displayData called');
-            console.log('state.data:', state.data);
-            console.log('state.scenario:', state.scenario);
-            
-            if (!state.data || state.data.length === 0) {
-                console.log('No data to display');
-                return;
-            }
-
             const container = document.getElementById('dataTableContainer');
-            if (!container) {
-                console.error('dataTableContainer not found');
-                return;
-            }
-            console.log('Container found:', container);
 
-            const varsLabel = document.getElementById('varsLabel');
-            if (varsLabel) {
-                varsLabel.innerHTML = `
-                    <strong>Generieke mapping:</strong> X = ${state.scenario.varX} &nbsp;&nbsp; Y = ${state.scenario.varY}
-                `;
-            }
+            document.getElementById('varsLabel').innerHTML = `
+                <strong>Generieke mapping:</strong> X = ${state.scenario.varX} &nbsp;&nbsp; Y = ${state.scenario.varY}
+            `;
 
             let html = `<table><thead><tr>
                 <th>${state.scenario.entity}</th>
@@ -906,7 +800,6 @@
             });
 
             html += '</tbody></table>';
-            console.log('Setting innerHTML, html length:', html.length);
             container.innerHTML = html;
 
             // Show step cards
@@ -914,9 +807,9 @@
             document.getElementById('step234Card').classList.remove('hidden');
             document.getElementById('step56Card').classList.remove('hidden');
             document.getElementById('step79Card').classList.remove('hidden');
-            console.log('displayData completed');
         }
 
+        // Display deviations table
         // Display deviations table - students calculate ALL deviation columns
         function displayDeviationsTable() {
             const container = document.getElementById('deviationsTableContainer');
@@ -1072,10 +965,8 @@
                         ✅ Deel II (Stap 1) voltooid! Alle gemiddelden zijn correct.
                     </div>
                 `;
-                // Enable deviations table ONLY if not already displayed
-                if (document.querySelectorAll('#deviationsTableContainer input').length === 0) {
-                    displayDeviationsTable();
-                }
+                // Enable deviations table
+                displayDeviationsTable();
             } else if (xCorrect === false || yCorrect === false) {
                 feedback.innerHTML = `
                     <div class="feedback err">
@@ -1093,15 +984,12 @@
             // Validate all deviation inputs
             const inputs = document.querySelectorAll('#deviationsTableContainer input[data-row]');
             let allCorrect = true;
-            let anyFilled = false;
 
             inputs.forEach(input => {
                 const row = parseInt(input.dataset.row);
                 const col = input.dataset.col;
                 const truthVal = state.truth.deviations[row][col];
                 const isCorrect = checkValue(input.value, truthVal, 4);
-
-                if (input.value !== '') anyFilled = true;
 
                 input.classList.remove('valid', 'invalid');
                 if (isCorrect === true) {
@@ -1112,213 +1000,210 @@
                 }
             });
 
-            // Update row lights - all 5 cells must be correct
+            // Update row lights
             for (let i = 0; i < state.data.length; i++) {
                 const rowInputs = document.querySelectorAll(`input[data-row="${i}"]`);
                 const rowCorrect = Array.from(rowInputs).every(inp => inp.classList.contains('valid'));
                 const light = document.getElementById(`lightDev${i}`);
-                if (light) light.style.background = rowCorrect ? '#00C853' : '#BDBDBD';
+                light.style.background = rowCorrect ? '#00C853' : '#BDBDBD';
             }
 
             const feedback = document.getElementById('step234Feedback');
-            if (allCorrect && anyFilled) {
-                const allInputsFilled = Array.from(inputs).every(inp => inp.value !== '');
-                if (allInputsFilled) {
-                    feedback.innerHTML = '<div class="feedback ok">✅ Deel III voltooid! Alle berekeningen correct.</div>';
-                } else {
-                    feedback.innerHTML = '';
-                }
-            } else if (!allCorrect && anyFilled) {
-                feedback.innerHTML = '<div class="feedback err">❌ Controleer Deel III berekeningen: alle rij-gewijze berekeningen moeten nauwkeurig zijn tot 4 decimalen.</div>';
-                checkAllSteps();
+            if (allCorrect) {
+                feedback.innerHTML = '<div class="feedback ok">✅ Deel III voltooid! Alle berekeningen correct.</div>';
+            } else {
+                feedback.innerHTML = '';
             }
 
-            function validateStep4() {
-                const totX2 = document.getElementById('totX2');
-                const totY2 = document.getElementById('totY2');
-                const feedback = document.getElementById('step4Feedback');
+            checkAllSteps();
+        }
 
-                const xCorrect = checkValue(totX2.value, state.truth.sumDevX2, 4);
-                const yCorrect = checkValue(totY2.value, state.truth.sumDevY2, 4);
+        function validateStep4() {
+            const totX2 = document.getElementById('totX2');
+            const totY2 = document.getElementById('totY2');
+            const feedback = document.getElementById('step4Feedback');
 
-                totX2.classList.remove('valid', 'invalid');
-                totY2.classList.remove('valid', 'invalid');
+            const xCorrect = checkValue(totX2.value, state.truth.sumDevX2, 4);
+            const yCorrect = checkValue(totY2.value, state.truth.sumDevY2, 4);
 
-                if (xCorrect === true) totX2.classList.add('valid');
-                else if (xCorrect === false) totX2.classList.add('invalid');
+            totX2.classList.remove('valid', 'invalid');
+            totY2.classList.remove('valid', 'invalid');
 
-                if (yCorrect === true) totY2.classList.add('valid');
-                else if (yCorrect === false) totY2.classList.add('invalid');
+            if (xCorrect === true) totX2.classList.add('valid');
+            else if (xCorrect === false) totX2.classList.add('invalid');
 
-                if (xCorrect === true && yCorrect === true) {
-                    feedback.innerHTML = '<div class="feedback ok">✅ Stap 4 voltooid! Sommen correct.</div>';
-                } else if (xCorrect === false || yCorrect === false) {
-                    feedback.innerHTML = '<div class="feedback err">❌ Controleer uw totaalberekeningen.</div>';
-                } else {
-                    feedback.innerHTML = '';
-                }
+            if (yCorrect === true) totY2.classList.add('valid');
+            else if (yCorrect === false) totY2.classList.add('invalid');
 
-                checkAllSteps();
+            if (xCorrect === true && yCorrect === true) {
+                feedback.innerHTML = '<div class="feedback ok">✅ Stap 4 voltooid! Sommen correct.</div>';
+            } else if (xCorrect === false || yCorrect === false) {
+                feedback.innerHTML = '<div class="feedback err">❌ Controleer uw totaalberekeningen.</div>';
+            } else {
+                feedback.innerHTML = '';
             }
 
-            function validateStep56() {
-                const inputs = {
-                    varX: document.getElementById('varX'),
-                    varY: document.getElementById('varY'),
-                    sdX: document.getElementById('sdX'),
-                    sdY: document.getElementById('sdY')
-                };
+            checkAllSteps();
+        }
 
-                const checks = {
-                    varX: checkValue(inputs.varX.value, state.truth.varX, 4),
-                    varY: checkValue(inputs.varY.value, state.truth.varY, 4),
-                    sdX: checkValue(inputs.sdX.value, state.truth.sdX, 4),
-                    sdY: checkValue(inputs.sdY.value, state.truth.sdY, 4)
-                };
+        function validateStep56() {
+            const inputs = {
+                varX: document.getElementById('varX'),
+                varY: document.getElementById('varY'),
+                sdX: document.getElementById('sdX'),
+                sdY: document.getElementById('sdY')
+            };
 
-                Object.keys(inputs).forEach(key => {
-                    inputs[key].classList.remove('valid', 'invalid');
-                    if (checks[key] === true) inputs[key].classList.add('valid');
-                    else if (checks[key] === false) inputs[key].classList.add('invalid');
-                });
+            const checks = {
+                varX: checkValue(inputs.varX.value, state.truth.varX, 4),
+                varY: checkValue(inputs.varY.value, state.truth.varY, 4),
+                sdX: checkValue(inputs.sdX.value, state.truth.sdX, 4),
+                sdY: checkValue(inputs.sdY.value, state.truth.sdY, 4)
+            };
 
-                const feedback = document.getElementById('step56Feedback');
-                const allCorrect = Object.values(checks).every(c => c === true);
+            Object.keys(inputs).forEach(key => {
+                inputs[key].classList.remove('valid', 'invalid');
+                if (checks[key] === true) inputs[key].classList.add('valid');
+                else if (checks[key] === false) inputs[key].classList.add('invalid');
+            });
 
-                if (allCorrect) {
-                    feedback.innerHTML = '<div class="feedback ok">✅ Deel IV (Stappen 5-6) voltooid! Alle varianties en standaarddeviaties correct.</div>';
-                } else {
-                    feedback.innerHTML = '';
-                }
+            const feedback = document.getElementById('step56Feedback');
+            const allCorrect = Object.values(checks).every(c => c === true);
 
-                checkAllSteps();
+            if (allCorrect) {
+                feedback.innerHTML = '<div class="feedback ok">✅ Deel IV (Stappen 5-6) voltooid! Alle varianties en standaarddeviaties correct.</div>';
+            } else {
+                feedback.innerHTML = '';
             }
 
-            function validateStep79() {
-                const inputs = {
-                    crossProduct: document.getElementById('crossProduct'),
-                    covariance: document.getElementById('covariance'),
-                    sdProduct: document.getElementById('sdProduct')
-                };
+            checkAllSteps();
+        }
 
-                const checks = {
-                    crossProduct: checkValue(inputs.crossProduct.value, state.truth.sumDevXY, 4),
-                    covariance: checkValue(inputs.covariance.value, state.truth.covariance, 4),
-                    sdProduct: checkValue(inputs.sdProduct.value, state.truth.sdProduct, 4)
-                };
+        function validateStep79() {
+            const inputs = {
+                crossProduct: document.getElementById('crossProduct'),
+                covariance: document.getElementById('covariance'),
+                sdProduct: document.getElementById('sdProduct')
+            };
 
-                Object.keys(inputs).forEach(key => {
-                    inputs[key].classList.remove('valid', 'invalid');
-                    if (checks[key] === true) inputs[key].classList.add('valid');
-                    else if (checks[key] === false) inputs[key].classList.add('invalid');
-                });
+            const checks = {
+                crossProduct: checkValue(inputs.crossProduct.value, state.truth.sumDevXY, 4),
+                covariance: checkValue(inputs.covariance.value, state.truth.covariance, 4),
+                sdProduct: checkValue(inputs.sdProduct.value, state.truth.sdProduct, 4)
+            };
 
-                const feedback = document.getElementById('step79Feedback');
-                const allCorrect = Object.values(checks).every(c => c === true);
+            Object.keys(inputs).forEach(key => {
+                inputs[key].classList.remove('valid', 'invalid');
+                if (checks[key] === true) inputs[key].classList.add('valid');
+                else if (checks[key] === false) inputs[key].classList.add('invalid');
+            });
 
-                if (allCorrect) {
-                    if (state.mode === 'Correlation') {
-                        // In correlation mode, calculate and show correlation here
-                        const correlationValue = round4dp(state.truth.covariance / state.truth.sdProduct);
-                        feedback.innerHTML = `
+            const feedback = document.getElementById('step79Feedback');
+            const allCorrect = Object.values(checks).every(c => c === true);
+
+            if (allCorrect) {
+                if (state.mode === 'Correlation') {
+                    // In correlation mode, calculate and show correlation here
+                    const correlationValue = round4dp(state.truth.covariance / state.truth.sdProduct);
+                    feedback.innerHTML = `
                         <div class="feedback ok">
                             ✅ Deel V (Stappen 7-9) voltooid! Correlatiecoëfficiënt correct berekend.<br>
                             <strong>Correlatie r = ${correlationValue.toFixed(4)}</strong>
                         </div>
                     `;
-                    } else {
-                        feedback.innerHTML = '<div class="feedback ok">✅ Deel V (Stappen 7-9) voltooid! Covariatie en SD-product correct.</div>';
-                    }
                 } else {
-                    feedback.innerHTML = '';
+                    feedback.innerHTML = '<div class="feedback ok">✅ Deel V (Stappen 7-9) voltooid! Covariatie en SD-product correct.</div>';
                 }
-
-                checkAllSteps();
+            } else {
+                feedback.innerHTML = '';
             }
 
-            function validateStep1012() {
-                const inputs = {
-                    correlation: document.getElementById('correlation'),
-                    slope: document.getElementById('slope'),
-                    intercept: document.getElementById('intercept')
-                };
+            checkAllSteps();
+        }
 
-                const checks = {
-                    correlation: checkValue(inputs.correlation.value, state.truth.correlation, 4),
-                    slope: checkValue(inputs.slope.value, state.truth.slope, 4),
-                    intercept: checkValue(inputs.intercept.value, state.truth.intercept, 4)
-                };
+        function validateStep1012() {
+            const inputs = {
+                correlation: document.getElementById('correlation'),
+                slope: document.getElementById('slope'),
+                intercept: document.getElementById('intercept')
+            };
 
-                Object.keys(inputs).forEach(key => {
-                    inputs[key].classList.remove('valid', 'invalid');
-                    if (checks[key] === true) inputs[key].classList.add('valid');
-                    else if (checks[key] === false) inputs[key].classList.add('invalid');
-                });
+            const checks = {
+                correlation: checkValue(inputs.correlation.value, state.truth.correlation, 4),
+                slope: checkValue(inputs.slope.value, state.truth.slope, 4),
+                intercept: checkValue(inputs.intercept.value, state.truth.intercept, 4)
+            };
 
-                const feedback = document.getElementById('step1012Feedback');
-                const allCorrect = Object.values(checks).every(c => c === true);
+            Object.keys(inputs).forEach(key => {
+                inputs[key].classList.remove('valid', 'invalid');
+                if (checks[key] === true) inputs[key].classList.add('valid');
+                else if (checks[key] === false) inputs[key].classList.add('invalid');
+            });
 
-                if (allCorrect) {
-                    feedback.innerHTML = '<div class="feedback ok">✅ Deel VI (Stappen 10-12) voltooid! Correlatie, helling en intercept correct.</div>';
-                } else {
-                    feedback.innerHTML = '';
-                }
+            const feedback = document.getElementById('step1012Feedback');
+            const allCorrect = Object.values(checks).every(c => c === true);
 
-                checkAllSteps();
+            if (allCorrect) {
+                feedback.innerHTML = '<div class="feedback ok">✅ Deel VI (Stappen 10-12) voltooid! Correlatie, helling en intercept correct.</div>';
+            } else {
+                feedback.innerHTML = '';
             }
 
-            function validateStep1415() {
-                const inputs = {
-                    rSquared: document.getElementById('rSquared'),
-                    alienation: document.getElementById('alienation')
-                };
+            checkAllSteps();
+        }
 
-                const checks = {
-                    rSquared: checkValue(inputs.rSquared.value, state.truth.rSquared, 4),
-                    alienation: checkValue(inputs.alienation.value, state.truth.alienation, 4)
-                };
+        function validateStep1415() {
+            const inputs = {
+                rSquared: document.getElementById('rSquared'),
+                alienation: document.getElementById('alienation')
+            };
 
-                Object.keys(inputs).forEach(key => {
-                    inputs[key].classList.remove('valid', 'invalid');
-                    if (checks[key] === true) inputs[key].classList.add('valid');
-                    else if (checks[key] === false) inputs[key].classList.add('invalid');
-                });
+            const checks = {
+                rSquared: checkValue(inputs.rSquared.value, state.truth.rSquared, 4),
+                alienation: checkValue(inputs.alienation.value, state.truth.alienation, 4)
+            };
 
-                const feedback = document.getElementById('step1415Feedback');
-                const allCorrect = Object.values(checks).every(c => c === true);
+            Object.keys(inputs).forEach(key => {
+                inputs[key].classList.remove('valid', 'invalid');
+                if (checks[key] === true) inputs[key].classList.add('valid');
+                else if (checks[key] === false) inputs[key].classList.add('invalid');
+            });
 
-                if (allCorrect) {
-                    feedback.innerHTML = '<div class="feedback ok">✅ Deel VIII (Stappen 14-15) voltooid! R² en vervreemding correct.</div>';
-                } else {
-                    feedback.innerHTML = '';
-                }
+            const feedback = document.getElementById('step1415Feedback');
+            const allCorrect = Object.values(checks).every(c => c === true);
 
-                checkAllSteps();
+            if (allCorrect) {
+                feedback.innerHTML = '<div class="feedback ok">✅ Deel VIII (Stappen 14-15) voltooid! R² en vervreemding correct.</div>';
+            } else {
+                feedback.innerHTML = '';
             }
 
-            function checkAllSteps() {
-                // Check if all steps are complete based on mode
-                const step1OK = checkValue(document.getElementById('meanX').value, state.truth.meanX, 4) === true &&
-                    checkValue(document.getElementById('meanY').value, state.truth.meanY, 4) === true;
+            checkAllSteps();
+        }
 
-                // Check if all deviation table cells are correct
-                const deviationInputs = document.querySelectorAll('#deviationsTableContainer input[data-row]');
-                const step23OK = deviationInputs.length > 0 &&
-                    Array.from(deviationInputs).every(inp => inp.classList.contains('valid') && inp.value !== '');
+        function checkAllSteps() {
+            // Check if all steps are complete based on mode
+            const step1OK = checkValue(document.getElementById('meanX').value, state.truth.meanX, 4) === true &&
+                checkValue(document.getElementById('meanY').value, state.truth.meanY, 4) === true;
 
-                const step4OK = checkValue(document.getElementById('totX2').value, state.truth.sumDevX2, 4) === true &&
-                    checkValue(document.getElementById('totY2').value, state.truth.sumDevY2, 4) === true;
+            const step4OK = checkValue(document.getElementById('totX2').value, state.truth.sumDevX2, 4) === true &&
+                checkValue(document.getElementById('totY2').value, state.truth.sumDevY2, 4) === true;
 
-                const step56OK = checkValue(document.getElementById('varX').value, state.truth.varX, 4) === true &&
-                    checkValue(document.getElementById('varY').value, state.truth.varY, 4) === true &&
-                    checkValue(document.getElementById('sdX').value, state.truth.sdX, 4) === true &&
-                    checkValue(document.getElementById('sdY').value, state.truth.sdY, 4) === true;
+            const step56OK = checkValue(document.getElementById('varX').value, state.truth.varX, 4) === true &&
+                checkValue(document.getElementById('varY').value, state.truth.varY, 4) === true &&
+                checkValue(document.getElementById('sdX').value, state.truth.sdX, 4) === true &&
+                checkValue(document.getElementById('sdY').value, state.truth.sdY, 4) === true;
 
-                const step79OK = checkValue(document.getElementById('crossProduct').value, state.truth.sumDevXY, 4) === true &&
-                    checkValue(document.getElementById('covariance').value, state.truth.covariance, 4) === true &&
-                    checkValue(document.getElementById('sdProduct').value, state.truth.sdProduct, 4) === true;
+            const step79OK = checkValue(document.getElementById('crossProduct').value, state.truth.sumDevXY, 4) === true &&
+                checkValue(document.getElementById('covariance').value, state.truth.covariance, 4) === true &&
+                checkValue(document.getElementById('sdProduct').value, state.truth.sdProduct, 4) === true;
 
-                let allComplete = step1OK && step23OK && step4OK && step56OK && step79OK;
+            let allComplete = step1OK && step4OK && step56OK && step79OK;
+
+            if (state.mode === 'Bivariate') {
+                const step1012OK = checkValue(document.getElementById('correlation').value, state.truth.correlation, 4) === true &&
+                    checkValue(document.getElementById('slope').value, state.truth.slope, 4) === true &&
+                    checkValue(document.getElementById('intercept').value, state.truth.intercept, 4) === true;
 
                 const step1415OK = checkValue(document.getElementById('rSquared').value, state.truth.rSquared, 4) === true &&
                     checkValue(document.getElementById('alienation').value, state.truth.alienation, 4) === true;
@@ -1380,5 +1265,14 @@
             // Clear deviations table
             document.getElementById('deviationsTableContainer').innerHTML = '';
             document.getElementById('deviationsLights').innerHTML = '';
-            
-</html >
+
+            document.getElementById('successMessage').classList.add('hidden');
+        }
+
+        // Initialize
+        updateMode();
+        updateHowItWorks();
+    </script>
+</body>
+
+</html>
