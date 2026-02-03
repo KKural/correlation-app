@@ -767,7 +767,7 @@
                     y: round2dp(Yv[i])
                 });
             }
-            
+
             console.log('Generated data:', state.data);
 
             // Calculate truth values using the 2-decimal rounded data
@@ -825,6 +825,7 @@
 
         // Update all UI elements
         function updateUI() {
+            console.log('updateUI called, state:', state);
             updateMode();
             displayVignette();
             displayData();
@@ -867,16 +868,21 @@
 
         // Display data table
         function displayData() {
+            console.log('displayData called');
+            console.log('state.data:', state.data);
+            console.log('state.scenario:', state.scenario);
+            
             if (!state.data || state.data.length === 0) {
                 console.log('No data to display');
                 return;
             }
-            
+
             const container = document.getElementById('dataTableContainer');
             if (!container) {
                 console.error('dataTableContainer not found');
                 return;
             }
+            console.log('Container found:', container);
 
             const varsLabel = document.getElementById('varsLabel');
             if (varsLabel) {
@@ -900,6 +906,7 @@
             });
 
             html += '</tbody></table>';
+            console.log('Setting innerHTML, html length:', html.length);
             container.innerHTML = html;
 
             // Show step cards
@@ -907,6 +914,7 @@
             document.getElementById('step234Card').classList.remove('hidden');
             document.getElementById('step56Card').classList.remove('hidden');
             document.getElementById('step79Card').classList.remove('hidden');
+            console.log('displayData completed');
         }
 
         // Display deviations table - students calculate ALL deviation columns
