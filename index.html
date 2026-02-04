@@ -748,16 +748,16 @@
                     // No standardization if n < 2
                     return z.map(v => round4dp(center + scale * v));
                 }
-                
+
                 // Standardize: z = (z - mean) / sd
                 const mean = z.reduce((a, b) => a + b, 0) / n;
                 const variance = z.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (n - 1);
                 const sd = Math.sqrt(variance);
-                
+
                 if (sd === 0 || isNaN(sd)) {
                     return z.map(v => round4dp(center + scale * v));
                 }
-                
+
                 const zStd = z.map(v => (v - mean) / sd);
                 return zStd.map(v => round4dp(center + scale * v));
             }
